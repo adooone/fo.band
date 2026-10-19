@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "projectName": "fo.band",
+  "initializedAt": "2026-10-19T21:35:46.656Z",
+  "nextId": {
+    "idea": 2
+  },
+  "desk": {
+    "services": [
+      {
+        "name": "dev",
+        "cmd": "pnpm dev"
+      }
+    ],
+    "checks": [
+      {
+        "name": "Types",
+        "cmd": "pnpm check-types"
+      },
+      {
+        "name": "Lint",
+        "cmd": "pnpm lint",
+        "fixCmd": "pnpm lint:write"
+      },
+      {
+        "name": "Tests",
+        "cmd": "pnpm test"
+      },
+      {
+        "name": "Build",
+        "cmd": "pnpm build"
+      }
+    ]
+  }
+}

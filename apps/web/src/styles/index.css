@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* KyivType Serif, self-hosted (shared with the radio apps and sbjectv). */
+@font-face {
+  font-family: "KyivType Serif";
+  src: url("/fonts/KyivTypeSerif-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "KyivType Serif";
+  src: url("/fonts/KyivTypeSerif-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "KyivType Serif";
+  src: url("/fonts/KyivTypeSerif-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* KyivType Sans: small labels. */
+@font-face {
+  font-family: "KyivType Sans";
+  src: url("/fonts/KyivTypeSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "KyivType Sans";
+  src: url("/fonts/KyivTypeSans-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* Two colours only: forest-green ink and off-white paper. Everything else is a blend. */
+  --color-ink: #0b2a1c;
+  --color-paper: #f3f1e8;
+  --font-sans: "KyivType Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "KyivType Serif", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, monospace;
+}
+
+@layer base {
+  /* Everything outside the canvas (rubber-band overscroll, the area under
+     the phone's status bar) is ink, like the canvas edges. */
+  html {
+    @apply bg-ink;
+  }
+  body {
+    @apply bg-ink text-paper font-serif antialiased;
+  }
+
+  /* One design pixel of the 1440 × 1024 frame, as a length. */
+  .home {
+    --k: min(100vw / 1440, 100vh / 1024);
+    /* Corner labels never shrink below two thirds, so they stay readable. */
+    --kc: max(var(--k), 0.66px);
+  }
+
+  /* Portrait phones: the trunk is fitted to the width, the frame's short side. */
+  @media (orientation: portrait) {
+    .home {
+      --k: min(100vw / 1024, 100vh / 1440);
+      --kc: max(var(--k), 0.6px);
+    }
+  }
+}

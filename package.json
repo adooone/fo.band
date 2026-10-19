@@ -1,0 +1,38 @@
+{
+  "name": "fo.band",
+  "version": "0.0.0",
+  "private": true,
+  "description": "fo.band — Лісовий Оркестр, the virtual band's site monorepo",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "web:dev": "pnpm --filter @fo/web dev",
+    "core:dev": "pnpm --filter @fo/core dev",
+    "build": "turbo run build --concurrency=2",
+    "lint": "turbo run lint --concurrency=2",
+    "lint:write": "turbo run lint:write --concurrency=2",
+    "format": "biome format --write .",
+    "test": "turbo run test --concurrency=2",
+    "check-types": "turbo run check-types --concurrency=2",
+    "verify": "turbo run check-types lint test build --concurrency=2",
+    "camp": "paper-camp dev",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@dendelion/paper-camp": "^0.43.0",
+    "bun": "1.4.3",
+    "husky": "^9.1.7",
+    "node-gyp": "^13.1.0",
+    "turbo": "^2.11.8",
+    "typescript": "7.0.2"
+  },
+  "volta": {
+    "node": "24.22.0"
+  }
+}

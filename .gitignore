@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+.turbo/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+
+# Logs
+logs/
+*.log
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Vite ephemeral build artifacts
+*.timestamp-*.mjs
+
+# Vercel
+.vercel/
+
+# Paper Camp (local runtime state)
+papercamp/.pairing.json
+papercamp/.task-logs/
+papercamp/tasks.log
+papercamp/notifications.log
+papercamp/pr-reviews.json
+papercamp/pr-map.json
+papercamp/night.json
+papercamp/run-order.md

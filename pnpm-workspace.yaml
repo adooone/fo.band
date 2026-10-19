@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  '@biomejs/biome': true
+  '@swc/core': true
+  bun: true
+  esbuild: true
+  node-pty: true
+
+minimumReleaseAgeExclude:
+  - "@vitest/mocker@5.0.5"
+  - "@vitest/spy@5.0.5"
+  - vitest@5.0.5

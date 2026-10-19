@@ -1,0 +1,9 @@
+echo "🔍 Running pre-commit checks..."
+
+echo "📝 Checking TypeScript types..."
+pnpm check-types || exit 1
+
+echo "✨ Running linters..."
+pnpm lint || exit 1
+
+echo "✅ All checks passed! Ready to commit."
