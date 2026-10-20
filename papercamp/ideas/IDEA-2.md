@@ -22,7 +22,12 @@ is about.
   camera walks left and the trees turn into leaves, like a herbarium.
 
 Decisions (2026-10-20, with the user): names «Музика», «Коріння»,
-«Знахідки»; transitions are a journey with per-page morphs.
+«Знахідки». Transitions were first a journey (camera sliding along a forest
+three screens wide); the user then asked for morphs in place instead: music
+draws in to the forest floor (mushrooms and the stump player, the stump's
+cut face being the record as on the album), finds turns the land into a
+strip on the right with bare leaves and a white field on the left, roots
+raises the horizon to a strip about a sixth of the height.
 
 ### Phases
 
