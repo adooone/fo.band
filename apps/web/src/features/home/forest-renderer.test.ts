@@ -1,57 +1,53 @@
+import { createNoise2D } from 'simplex-noise';
 import {
   bump,
-  DEFAULT_OPTIONS,
-  growForest,
-  type PlantKind,
-  profile,
+  moundShape,
+  mulberry32,
+  POINTS,
+  resample,
+  type TreeKind,
+  treeShape,
 } from './forest-renderer';
 
-describe('growForest', () => {
-  const forest = growForest(DEFAULT_OPTIONS.seed);
-  const trees = forest.filter((p) => p.kind === 'crown' || p.kind === 'spire');
-
-  it('plants trees across the width, none in the clearing', () => {
-    expect(trees.length).toBeGreaterThan(15);
-    for (const t of trees) {
-      expect(Math.abs(t.x - 0.5)).toBeGreaterThan(DEFAULT_OPTIONS.clearing);
-      expect(t.h).toBeGreaterThan(0.02);
-      expect(t.h).toBeLessThan(0.3);
-    }
-    expect(trees.some((t) => t.x < 0.1)).toBe(true);
-    expect(trees.some((t) => t.x > 0.9)).toBe(true);
-  });
-
-  it('puts grass everywhere and grows outward from the middle', () => {
-    const tufts = forest.filter((p) => p.kind === 'tuft');
-    expect(tufts.length).toBeGreaterThan(40);
-    const near = trees.filter((t) => Math.abs(t.x - 0.5) < 0.2);
-    const far = trees.filter((t) => Math.abs(t.x - 0.5) > 0.4);
-    const mean = (ps: typeof trees) =>
-      ps.reduce((s, p) => s + p.delay, 0) / ps.length;
-    expect(mean(near)).toBeLessThan(mean(far));
-  });
-
-  it('is the same forest for the same seed', () => {
-    expect(growForest(5)).toEqual(growForest(5));
-    expect(growForest(5)).not.toEqual(growForest(6));
+describe('resample', () => {
+  it('spreads the points evenly around a closed polygon, starting at the first', () => {
+    const out = resample([0, 0, 10, 0, 10, 10, 0, 10], 8);
+    expect(out.length).toBe(16);
+    expect(out.slice(0, 2)).toEqual([0, 0]);
+    expect(out.slice(2, 4)).toEqual([5, 0]);
+    expect(out.slice(8, 10)).toEqual([10, 10]);
   });
 });
 
-describe('profile', () => {
-  const kinds: PlantKind[] = ['crown', 'spire', 'bush', 'tuft'];
-  it('is a smooth symmetric bump: 1 at the top, 0 past the edges, no steps', () => {
+describe('treeShape', () => {
+  const noise = createNoise2D(mulberry32(1));
+  const kinds: TreeKind[] = ['round', 'lollipop', 'spruce', 'bush'];
+
+  it('stands on the ground, one tall, starting at the base and going over the top', () => {
     for (const kind of kinds) {
-      expect(profile(kind, 0)).toBe(1);
-      expect(profile(kind, 1)).toBe(0);
-      expect(profile(kind, -1.5)).toBe(0);
-      let prev = profile(kind, -0.999);
-      for (let u = -0.999; u <= 0; u += 0.001) {
-        const v = profile(kind, u);
-        expect(v).toBeCloseTo(profile(kind, -u), 9);
-        expect(v).toBeGreaterThanOrEqual(prev - 1e-9);
-        expect(v - prev).toBeLessThan(0.02);
-        prev = v;
+      const shape = treeShape(kind, 0.7, 3, 0.3, noise);
+      let top = 0;
+      for (let i = 1; i < shape.length; i += 2) {
+        expect(shape[i]).toBeLessThanOrEqual(0.001);
+        top = Math.min(top, shape[i]);
       }
+      expect(top).toBeLessThan(-0.85);
+      expect(top).toBeGreaterThan(-1.15);
+      // Starts left of the middle on the ground, ends right of it.
+      expect(shape[0]).toBeLessThan(0);
+      expect(shape[1]).toBeCloseTo(0, 6);
+      expect(shape[shape.length - 2]).toBeGreaterThan(0);
+    }
+  });
+
+  it('morphs from a mound with the same point count', () => {
+    const tree = resample(treeShape('spruce', 0.5, 2, 0.3, noise), POINTS);
+    const mound = resample(moundShape(0.5), POINTS);
+    expect(tree.length).toBe(POINTS * 2);
+    expect(mound.length).toBe(POINTS * 2);
+    for (let i = 1; i < mound.length; i += 2) {
+      expect(mound[i]).toBeLessThanOrEqual(1e-9);
+      expect(mound[i]).toBeGreaterThanOrEqual(-0.13);
     }
   });
 });

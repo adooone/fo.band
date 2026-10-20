@@ -1,63 +1,91 @@
 import { createNoise2D } from 'simplex-noise';
-import { LOGO_ROOT, LOGO_VIEWBOX, O_SHIFT } from './logo-paths';
+import { LOGO_ROOT, LOGO_VIEWBOX } from './logo-paths';
 
 /**
- * The forest: the lower third of the screen is ink, the sky above is paper,
- * and the edge between them is one continuous line, as if the whole horizon
- * were drawn without lifting the pencil. Trees, bushes and tufts of grass
- * are smooth bumps on that line (round crowns, soft spires, low mounds),
- * joined with a soft maximum so every meeting of two shapes is rounded. The
- * line wobbles a touch like a hand-drawn stroke, trees lean with a wind that
- * drifts and gusts, grass ripples in waves, the ground breathes, and on load
- * the forest grows out of the ground from the clearing outward. The clearing
- * in the middle leaves room for the mark.
+ * The forest: the lower part of the screen is ink, the sky above is paper.
+ * The ground is a wavy line of hills, highest in the middle under the mark,
+ * with a ripple of grass running along it that moves with the wind. On the
+ * hills stand cartoon trees, each one on its own: round crowns on trunks,
+ * lollipops, soft spruces, bushes. Every tree is one smooth closed polygon
+ * with the same number of points as a plain mound, so on load the forest
+ * morphs out of a flat line: the hills swell and each mound turns into its
+ * tree, from the middle outward. Edges wobble a touch like a pencil line,
+ * trees lean with a wind that drifts and gusts, the ground breathes.
  */
 
 const TAU = Math.PI * 2;
 
-export type PlantKind = 'crown' | 'spire' | 'bush' | 'tuft';
-
-export type Plant = {
-  kind: PlantKind;
-  /** Position across the screen, 0..1 of the width (may spill past the edges). */
-  x: number;
-  /** Height as a fraction of the forest scale (the screen height, less on narrow phones). */
-  h: number;
-  /** Half-width relative to the height. */
-  w: number;
-  /** Shape and sway variation. */
-  seed: number;
-  /** Seconds before this plant starts growing on load. */
-  delay: number;
-};
+export type TreeKind = 'round' | 'lollipop' | 'spruce' | 'bush';
 
 export type ForestOptions = {
-  /** Where the horizon sits, as a fraction of the screen height from the top. */
+  /** The ground's resting height at the screen edges, fraction of the height from the top. */
   horizon: number;
-  /** Half-width of the clearing in the middle, as a fraction of the width. */
+  /** How much the ground rises toward the middle, fraction of the height. */
+  hill: number;
+  /** Smaller waves along the ground, fraction of the height. */
+  waves: number;
+  /** How many of those smaller waves fit across the screen. */
+  waveCount: number;
+  /** Tallest tree, as a fraction of the mark's height. */
+  treeMax: number;
+  /** Smallest tree, as a fraction of the tallest. */
+  treeMin: number;
+  /** Gap between neighbouring trees, in mean tree widths. */
+  gap: number;
+  /** Half-width of the clearing in the middle, fraction of the width (at least the mark's). */
   clearing: number;
-  /** Hand-drawn wobble amplitude in design px (1 at 1024 px tall). */
-  wobble: number;
-  /** Radius of the rounded joins between shapes, in design px. */
-  rounding: number;
+  /** Share of spruces among the trees, 0..1. */
+  spruces: number;
+  /** Bushes per tree. */
+  bushes: number;
+  /** Trunk height of round trees, fraction of the tree. */
+  trunk: number;
+  /** Grass ripple amplitude in design px (1 at 1024 px tall). */
+  grassAmp: number;
+  /** Grass ripple wavelength in design px. */
+  grassWavelength: number;
+  /** How fast the grass ripple travels, wavelengths per second. */
+  grassSpeed: number;
+  /** Wind strength multiplier. */
+  wind: number;
   /** Seconds between two gusts of wind. */
   gustEvery: number;
   /** How long a gust takes to cross the screen. */
   gustSeconds: number;
   /** Seconds of one breath of the whole forest. */
   breathSeconds: number;
+  /** Hand-drawn wobble amplitude in design px. */
+  wobble: number;
+  /** How long the morph from the flat line takes, per tree. */
+  morphSeconds: number;
+  /** Extra delay for the trees at the edges, seconds. */
+  morphStagger: number;
   /** Seed for the forest, so it is the same forest on every visit. */
   seed: number;
 };
 
 export const DEFAULT_OPTIONS: ForestOptions = {
-  horizon: 2 / 3,
-  clearing: 0.1,
-  wobble: 1.4,
-  rounding: 9,
+  horizon: 0.74,
+  hill: 0.08,
+  waves: 0.012,
+  waveCount: 2.5,
+  treeMax: 0.33,
+  treeMin: 0.45,
+  gap: 0.7,
+  clearing: 0.12,
+  spruces: 0.45,
+  bushes: 0.5,
+  trunk: 0.3,
+  grassAmp: 2.2,
+  grassWavelength: 46,
+  grassSpeed: 0.8,
+  wind: 1,
   gustEvery: 13,
   gustSeconds: 4.5,
   breathSeconds: 7,
+  wobble: 1,
+  morphSeconds: 2.2,
+  morphStagger: 1,
   seed: 3,
 };
 
@@ -73,132 +101,167 @@ export const mulberry32 = (seed: number) => {
   };
 };
 
-const smoothstep = (a: number, b: number, v: number): number => {
-  const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-/** Eases out past 1 and settles back, like a shoot springing up. */
-const easeOutBack = (p: number, c1 = 1.2) => {
-  const c3 = c1 + 1;
-  return 1 + c3 * (p - 1) ** 3 + c1 * (p - 1) ** 2;
-};
+/** Smootherstep: zero velocity and acceleration at both ends. */
+const ease = (p: number) => p * p * p * (p * (p * 6 - 15) + 10);
 /** Raised-cosine bump, 1 at the centre and 0 beyond ±1. */
 export const bump = (u: number): number =>
   u <= -1 || u >= 1 ? 0 : 0.5 + 0.5 * Math.cos(Math.PI * u);
 
+/** Points per tree outline; the mound has the same count, so they can morph. */
+export const POINTS = 72;
+
 /**
- * A plant's outline as a height profile over u = −1..1 (its half-width):
- * 1 at the top, 0 at the edges, smooth everywhere. A crown is a round
- * mound, a spire a soft peak with concave flanks, a bush a low mound, a tuft
- * a narrow blip of grass.
+ * Resamples a closed polygon (flat [x, y, …]) to `count` points evenly
+ * spaced by arc length, starting at its first point.
  */
-export const profile = (kind: PlantKind, u: number): number => {
-  if (u <= -1 || u >= 1) return 0;
-  switch (kind) {
-    case 'crown':
-      return (1 - u * u) ** 0.75;
-    case 'spire':
-      return bump(u) ** 2.4;
-    case 'bush':
-      return bump(u) ** 0.9;
-    default:
-      return bump(u) ** 1.6;
+export const resample = (poly: number[], count: number): number[] => {
+  const n = poly.length / 2;
+  const cum = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    cum[i + 1] =
+      cum[i] +
+      Math.hypot(poly[2 * j] - poly[2 * i], poly[2 * j + 1] - poly[2 * i + 1]);
   }
+  const length = cum[n];
+  const out: number[] = [];
+  let seg = 0;
+  for (let k = 0; k < count; k++) {
+    const target = (k / count) * length;
+    while (seg + 1 < n && cum[seg + 1] <= target) seg++;
+    const j = (seg + 1) % n;
+    const span = cum[seg + 1] - cum[seg] || 1;
+    const t = (target - cum[seg]) / span;
+    out.push(
+      poly[2 * seg] + (poly[2 * j] - poly[2 * seg]) * t,
+      poly[2 * seg + 1] + (poly[2 * j + 1] - poly[2 * seg + 1]) * t,
+    );
+  }
+  return out;
+};
+
+export type Tree = {
+  kind: TreeKind;
+  /** Position across the screen in CSS px. */
+  x: number;
+  /** Height in CSS px. */
+  h: number;
+  /** Width in CSS px. */
+  w: number;
+  seed: number;
+  /** Seconds before this tree starts morphing. */
+  delay: number;
+  /** The final outline, local units (1 tall, base at the origin, y up is negative). */
+  shape: number[];
+  /** The plain mound it morphs from, same point count. */
+  mound: number[];
 };
 
 /**
- * Plants the forest: trees along the whole width with uneven gaps, shorter
- * toward the clearing and none inside it, bushes here and there, and tufts
- * of grass everywhere, a little taller in the meadow.
+ * A tree's outline in local units, one smooth closed polygon that starts at
+ * the base's left end, goes up and over to the right, and closes along the
+ * ground. Crowns are blobs (a circle with soft lobes), spruces are blunt
+ * cones with soft bulges, bushes are low blobs.
  */
-export const growForest = (
+export const treeShape = (
+  kind: TreeKind,
+  w: number,
   seed: number,
-  clearing = DEFAULT_OPTIONS.clearing,
-): Plant[] => {
-  const rng = mulberry32(seed);
-  const plants: Plant[] = [];
-  const kinds: PlantKind[] = [
-    'spire',
-    'spire',
-    'spire',
-    'crown',
-    'crown',
-    'crown',
-    'bush',
-  ];
-  let x = -0.06;
-  while (x < 1.06) {
-    const d = Math.abs(x - 0.5);
-    // How tall things may grow here: only grass and bushes in the clearing,
-    // then taller and taller away from it.
-    const room = smoothstep(clearing, clearing + 0.16, d);
-    const kind = kinds[Math.floor(rng() * kinds.length)];
-    let h: number;
-    let w: number;
-    switch (kind) {
-      case 'spire':
-        h = 0.12 + 0.16 * rng();
-        w = 0.26 + 0.14 * rng();
-        break;
-      case 'crown':
-        h = 0.08 + 0.09 * rng();
-        w = 0.45 + 0.25 * rng();
-        break;
-      default:
-        h = 0.025 + 0.025 * rng();
-        w = 1 + 0.6 * rng();
+  trunk: number,
+  blobNoise: (x: number, y: number) => number,
+): number[] => {
+  const pts: number[] = [];
+  const push = (x: number, y: number) => pts.push(x, y);
+  const blob = (
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    from: number,
+    to: number,
+    lobes: number,
+  ) => {
+    const n = 40;
+    for (let i = 0; i <= n; i++) {
+      const a = from + ((to - from) * i) / n;
+      const r =
+        1 +
+        lobes * blobNoise(1.6 * Math.cos(a) + seed, 1.6 * Math.sin(a) + seed);
+      push(cx + rx * r * Math.cos(a), cy + ry * r * Math.sin(a));
     }
-    if (kind !== 'bush') h *= 0.3 + 0.7 * room;
-    if (
-      (kind === 'bush' && d > clearing * 0.6) ||
-      (kind !== 'bush' && room > 0.05)
-    ) {
-      plants.push({
-        kind,
-        x,
-        h,
-        w,
-        seed: rng() * 1000,
-        delay: 0.5 + d * 3.2 + rng() * 0.5,
-      });
+  };
+  const deg = Math.PI / 180;
+  switch (kind) {
+    case 'round': {
+      const r = (1 - trunk) / 2 + 0.08;
+      const tw = 0.05 + 0.02 * w;
+      const cy = -(1 - r);
+      push(-tw, 0);
+      push(-tw, cy + r * 0.55);
+      blob(0, cy, (w / 2) * 1.05, r, 125 * deg, 415 * deg, 0.09);
+      push(tw, cy + r * 0.55);
+      push(tw, 0);
+      return pts;
     }
-    x += kind === 'bush' ? 0.015 + 0.02 * rng() : 0.022 + 0.03 * rng();
+    case 'lollipop': {
+      const r = 0.3;
+      const tw = 0.035;
+      const cy = -(1 - r);
+      push(-tw, 0);
+      push(-tw, cy + r * 0.7);
+      blob(0, cy, w / 2, r, 120 * deg, 420 * deg, 0.05);
+      push(tw, cy + r * 0.7);
+      push(tw, 0);
+      return pts;
+    }
+    case 'spruce': {
+      const tw = 0.04;
+      const n = 28;
+      push(-tw, 0);
+      push(-tw, -0.07);
+      // Left side up: a blunt cone whose sides bulge softly, like boughs.
+      for (let i = 0; i <= n; i++) {
+        const t = i / n;
+        const bulge =
+          1 + 0.12 * (0.5 + 0.5 * Math.sin(5 * Math.PI * t - Math.PI / 2));
+        const x = (w / 2) * (1 - t) ** 0.8 * bulge;
+        push(-x, -0.07 - 0.93 * t);
+      }
+      for (let i = n; i >= 0; i--) {
+        const t = i / n;
+        const bulge =
+          1 + 0.12 * (0.5 + 0.5 * Math.sin(5 * Math.PI * t - Math.PI / 2));
+        const x = (w / 2) * (1 - t) ** 0.8 * bulge;
+        push(x, -0.07 - 0.93 * t);
+      }
+      push(tw, -0.07);
+      push(tw, 0);
+      return pts;
+    }
+    default: {
+      push(-w / 2, 0);
+      blob(0, -0.45, w / 2, 0.55, 150 * deg, 390 * deg, 0.12);
+      push(w / 2, 0);
+      return pts;
+    }
   }
-  // Tufts of grass: a small one every so often, taller in the meadow.
-  let gx = -0.02;
-  while (gx < 1.02) {
-    const d = Math.abs(gx - 0.5);
-    const meadow = 1 - smoothstep(clearing * 0.8, clearing + 0.12, d);
-    plants.push({
-      kind: 'tuft',
-      x: gx,
-      h: (0.004 + 0.006 * rng()) * (1 + 0.5 * meadow),
-      w: 1 + 0.8 * rng(),
-      seed: rng() * 1000,
-      delay: 0.2 + d * 2.6 + rng() * 0.6,
-    });
-    gx += 0.012 + 0.014 * rng();
-  }
-  return plants;
 };
 
-/** The mark's height for a screen: a third of the height, less on narrow phones. */
-export const logoHeight = (width: number, height: number): number =>
-  Math.min(0.34 * height, 0.55 * width);
-/** The mark's width for that height. */
-export const logoWidth = (height: number): number =>
-  height * ((LOGO_VIEWBOX.w + O_SHIFT) / LOGO_VIEWBOX.h);
-/** The sprout's root sits left of the mark's centre by this much of its height. */
-const ROOT_OFFSET =
-  ((LOGO_VIEWBOX.w + O_SHIFT) / 2 - (LOGO_ROOT.x - LOGO_VIEWBOX.x)) /
-  LOGO_VIEWBOX.h;
+/** The plain mound every tree starts as: a low half-ellipse on the ground. */
+export const moundShape = (w: number): number[] => {
+  const pts: number[] = [];
+  const n = 40;
+  for (let i = 0; i <= n; i++) {
+    const a = Math.PI + (Math.PI * i) / n;
+    pts.push((w / 2) * Math.cos(a), 0.12 * Math.sin(a));
+  }
+  return pts;
+};
 
 export type ForestLayout = {
   width: number;
   height: number;
-  /** The horizon's resting height in CSS px. */
-  horizonY: number;
   /** Where the sprout's stem meets the ground, in CSS px. */
   root: { x: number; y: number };
 };
@@ -206,47 +269,157 @@ export type ForestLayout = {
 export type ForestRenderer = {
   resize: (width: number, height: number, dpr: number) => void;
   draw: (time: number) => void;
+  /** Updates options in place; the forest is replanted when its layout changes. */
+  setOptions: (options: Partial<ForestOptions>) => void;
+  /** Updates the mark's size and the o's place, which set the clearing and the root. */
+  setMark: (mark: MarkOptions) => void;
   /** Sends a gust across the forest from the left (+1) or the right (−1). */
   gust: (direction: 1 | -1) => void;
   /** Wind strength at a screen x right now, about −1..1 (positive blows right). */
   windAt: (x: number) => number;
-  /** How far the forest has grown in, 0..1 (1 once the intro is over). */
-  grown: () => number;
   layout: () => ForestLayout;
 };
 
 export const INK = '#2d493a';
 export const PAPER = '#f7f6f1';
 
+/** The mark's height for a screen: a third of the height, less on narrow phones. */
+export const logoHeight = (
+  width: number,
+  height: number,
+  fraction = 0.34,
+): number => Math.min(fraction * height, 0.55 * width);
+/** The mark's width for that height. */
+export const logoWidth = (height: number, shift: number): number =>
+  height * ((LOGO_VIEWBOX.w + shift) / LOGO_VIEWBOX.h);
+
+export type MarkOptions = {
+  /** The mark's height as a fraction of the screen height. */
+  logo: number;
+  /** Where the o settles relative to Figma, viewBox units up and right. */
+  oLift: number;
+  oShift: number;
+};
+
+export const DEFAULT_MARK: MarkOptions = { logo: 0.34, oLift: 46, oShift: 14 };
+
 export const createForestRenderer = (
   canvas: HTMLCanvasElement,
   options: Partial<ForestOptions> = {},
+  mark: MarkOptions = DEFAULT_MARK,
   onLayout?: (layout: ForestLayout) => void,
 ): ForestRenderer | null => {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  const noise = createNoise2D(mulberry32(opts.seed * 17 + 2));
-  let plants: Plant[] = [];
+  const markOpts = { ...mark };
+  let blobNoise = createNoise2D(mulberry32(opts.seed * 17 + 1));
+  const noise = createNoise2D(mulberry32(97));
 
+  let trees: Tree[] = [];
+  let buffer = new Float64Array(POINTS * 2);
   let W = 0;
   let H = 0;
   let dprScale = 1;
   /** One design pixel in CSS px (1 at 1024 tall), floored for phones. */
   let u = 1;
-  let horizonY = 0;
-  /** What plant sizes scale with: the height, capped on narrow phones. */
-  let S = 0;
-  /** The skyline, sampled every `step` px: soft-max accumulators and heights. */
-  let step = 3;
-  let acc = new Float64Array(0);
+  let groundX = new Float64Array(0);
   let lastTime = 0;
-  /** Current gust: when it started and which way it blows; -1 = none. */
   let gustStart = -1;
   let gustDir: 1 | -1 = 1;
   let nextGust = 6;
-  let grownLevel = 0;
+
+  /** The resting ground line: hills highest in the middle, with smaller waves. */
+  const groundRest = (x: number): number => {
+    const c = (x - W / 2) / (W / 2);
+    const hill = opts.hill * H * (0.5 + 0.5 * Math.cos(Math.PI * c));
+    const wave = opts.waves * H * Math.sin(Math.PI * opts.waveCount * c + 0.7);
+    return opts.horizon * H - hill - wave;
+  };
+
+  const plant = () => {
+    const rng = mulberry32(opts.seed);
+    blobNoise = createNoise2D(mulberry32(opts.seed * 17 + 1));
+    const S = Math.min(H, 1.2 * W);
+    const logoH = logoHeight(W, H, markOpts.logo);
+    const maxH = opts.treeMax * logoH;
+    const minH = opts.treeMin * maxH;
+    const clearing = Math.max(
+      opts.clearing * W,
+      0.5 * logoWidth(logoH, markOpts.oShift) + 0.05 * S,
+    );
+    const list: Tree[] = [];
+    const kinds: TreeKind[] = ['round', 'lollipop'];
+    const place = (side: 1 | -1) => {
+      let x = W / 2 + side * clearing;
+      let prevW = 0;
+      while (side > 0 ? x < W + 0.1 * S : x > -0.1 * S) {
+        const spruce = rng() < opts.spruces;
+        const kind: TreeKind = spruce ? 'spruce' : kinds[Math.floor(rng() * 2)];
+        const h = minH + (maxH - minH) * rng();
+        const w =
+          h * (kind === 'spruce' ? 0.45 + 0.15 * rng() : 0.7 + 0.3 * rng());
+        const meanW = (prevW + w) / 2 || w;
+        x +=
+          side * (prevW / 2 + opts.gap * meanW * (0.6 + 0.8 * rng()) + w / 2);
+        const seed = rng() * 100;
+        list.push({
+          kind,
+          x,
+          h,
+          w,
+          seed,
+          delay:
+            0.3 +
+            (opts.morphStagger * Math.abs(x - W / 2)) / (W / 2) +
+            0.15 * rng(),
+          shape: resample(
+            treeShape(kind, w / h, seed, opts.trunk, blobNoise),
+            POINTS,
+          ),
+          mound: resample(moundShape(w / h), POINTS),
+        });
+        // A bush now and then, in the gap after this tree.
+        if (rng() < opts.bushes) {
+          const bh = h * (0.18 + 0.14 * rng());
+          const bw = bh * (1.6 + 0.8 * rng());
+          const bx = x + side * (w / 2 + bw / 2 + 0.1 * meanW * rng());
+          const bseed = rng() * 100;
+          list.push({
+            kind: 'bush',
+            x: bx,
+            h: bh,
+            w: bw,
+            seed: bseed,
+            delay:
+              0.3 +
+              (opts.morphStagger * Math.abs(bx - W / 2)) / (W / 2) +
+              0.2 * rng(),
+            shape: resample(
+              treeShape('bush', bw / bh, bseed, opts.trunk, blobNoise),
+              POINTS,
+            ),
+            mound: resample(moundShape(bw / bh), POINTS),
+          });
+        }
+        prevW = w;
+      }
+    };
+    place(1);
+    place(-1);
+    trees = list;
+  };
+
+  const layout = (): ForestLayout => {
+    const logoH = logoHeight(W, H, markOpts.logo);
+    const rootOffset =
+      ((LOGO_VIEWBOX.w + markOpts.oShift) / 2 -
+        (LOGO_ROOT.x - LOGO_VIEWBOX.x)) /
+      LOGO_VIEWBOX.h;
+    const x = W / 2 - rootOffset * logoH;
+    return { width: W, height: H, root: { x, y: groundRest(x) + 0.02 * H } };
+  };
 
   const resize = (w: number, h: number, dpr: number) => {
     W = w;
@@ -255,29 +428,29 @@ export const createForestRenderer = (
     canvas.height = Math.round(h * dpr);
     dprScale = dpr;
     u = Math.max(0.55, Math.min(h / 1024, w / 1440));
-    horizonY = h * opts.horizon;
-    S = Math.min(h, 1.2 * w);
-    // The clearing is at least as wide as the mark, with a little meadow around it.
-    const clearing = Math.max(
-      opts.clearing,
-      (0.5 * logoWidth(logoHeight(w, h))) / w + 0.04,
-    );
-    plants = growForest(opts.seed, clearing);
-    step = Math.max(2, 3 * u);
-    acc = new Float64Array(Math.ceil(W / step) + 3);
+    const step = Math.max(2, 3 * u);
+    const count = Math.ceil(W / step) + 3;
+    groundX = new Float64Array(count);
+    for (let i = 0; i < count; i++) groundX[i] = -step + i * step;
+    buffer = new Float64Array(POINTS * 2);
+    plant();
     onLayout?.(layout());
   };
 
-  const layout = (): ForestLayout => ({
-    width: W,
-    height: H,
-    horizonY,
-    // The whole mark is centred; the sprout grows left of the middle, the sun hangs right.
-    root: {
-      x: W / 2 - ROOT_OFFSET * logoHeight(W, H),
-      y: horizonY + 0.02 * H,
-    },
-  });
+  const setOptions = (next: Partial<ForestOptions>) => {
+    Object.assign(opts, next);
+    if (W > 0 && H > 0) {
+      plant();
+      onLayout?.(layout());
+    }
+  };
+  const setMark = (next: MarkOptions) => {
+    Object.assign(markOpts, next);
+    if (W > 0 && H > 0) {
+      plant();
+      onLayout?.(layout());
+    }
+  };
 
   /** Where the gust's centre is now, or null when there is none. */
   const gustCentre = (time: number): number | null => {
@@ -295,7 +468,8 @@ export const createForestRenderer = (
   };
   /** Ambient wind, slowly drifting, plus the gust: −1..1-ish. */
   const windAt = (x: number): number =>
-    0.45 * noise(lastTime * 0.12 + x * 0.0006, 11) + gustAt(x, lastTime);
+    opts.wind *
+    (0.45 * noise(lastTime * 0.12 + x * 0.0006, 11) + gustAt(x, lastTime));
 
   const draw = (time: number) => {
     if (W === 0 || H === 0) return;
@@ -312,66 +486,64 @@ export const createForestRenderer = (
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = INK;
 
-    const breath = Math.sin((time / opts.breathSeconds) * TAU);
-    const k = 1 / (opts.rounding * u);
-    // Soft maximum of every plant's height over the ground: each plant adds
-    // exp(k·h) over its own span, the ground contributes 1, and the line is
-    // log(sum)/k, so shapes meet in rounded joins instead of corners.
-    acc.fill(1);
-    let grownSum = 0;
-    for (const plant of plants) {
-      const grow = clamp01((time - plant.delay) / 1.5);
-      grownSum += grow;
-      const growth = easeOutBack(grow);
-      if (growth <= 0) continue;
-      const h = plant.h * S * growth * (1 + 0.006 * breath);
-      const half = plant.w * plant.h * S;
-      const cx = plant.x * W;
-      const grass = plant.kind === 'tuft';
-      // Wind: trees lean a little, grass bends more and in travelling waves.
-      const wind = grass
-        ? 0.5 * noise(time * 0.5 - cx * 0.004, 12 + plant.seed * 0.01) +
-          0.7 * gustAt(cx, time)
-        : 0.06 * noise(time * 0.13 + plant.seed * 0.37, 11) +
-          0.11 * gustAt(cx, time);
-      // The tip moves by `sway`, the base stays: the profile is sheared.
-      const sway = wind * h;
-      const from = Math.max(0, Math.floor((cx - half - Math.abs(sway)) / step));
-      const to = Math.min(
-        acc.length - 1,
-        Math.ceil((cx + half + Math.abs(sway)) / step),
-      );
-      for (let i = from; i <= to; i++) {
-        const x = i * step;
-        const p0 = profile(plant.kind, (x - cx) / half);
-        const p = profile(plant.kind, (x - cx - sway * p0 * p0) / half);
-        if (p > 0) acc[i] += Math.exp(k * h * p);
-      }
-    }
-    grownLevel = plants.length ? grownSum / plants.length : 1;
-
-    // One stroke from the left edge to the right: the ground's gentle hills,
-    // the plants on top, and a hand-drawn wobble along the whole line.
+    const breath = 2.5 * u * Math.sin((time / opts.breathSeconds) * TAU);
     const amp = opts.wobble * u;
     const flow = time * 0.06;
+    // The hills swell out of a flat line as the morph begins.
+    const swell = ease(clamp01((time - 0.2) / opts.morphSeconds));
+    const groundAt = (x: number) =>
+      opts.horizon * H + (groundRest(x) - opts.horizon * H) * swell + breath;
+
+    // The ground: hills with the grass ripple riding on them. The ripple
+    // travels with the wind and grows where the wind blows harder.
+    const lambda = opts.grassWavelength * u;
     ctx.beginPath();
     ctx.moveTo(-10, H + 10);
-    for (let i = 0; i < acc.length; i++) {
-      const x = i * step;
-      const hill = 0.012 * H * noise((x / W) * 2.2 + 50, 50);
-      const line = Math.log(acc[i]) / k;
+    for (let i = 0; i < groundX.length; i++) {
+      const x = groundX[i];
+      const wind = windAt(x);
+      const phase =
+        (x / lambda) * TAU - time * opts.grassSpeed * TAU * (0.6 + wind);
+      const grass =
+        opts.grassAmp *
+        u *
+        swell *
+        (0.7 + 0.6 * Math.abs(wind)) *
+        Math.sin(phase);
       const y =
-        horizonY +
-        hill +
-        2.5 * u * breath -
-        line +
-        amp * noise(x * 0.02 + flow, 77) +
-        0.3 * u * noise(x * 0.07, 9);
+        groundAt(x) - Math.abs(grass) + amp * noise(x * 0.02 + flow, 77);
       ctx.lineTo(x, y);
     }
     ctx.lineTo(W + 10, H + 10);
     ctx.closePath();
     ctx.fill();
+
+    // The trees: each morphs from its mound, leans in the wind, wobbles a touch.
+    for (const tree of trees) {
+      const p = ease(clamp01((time - tree.delay) / opts.morphSeconds));
+      if (p <= 0) continue;
+      const base = groundAt(tree.x) + 1.5 * u;
+      const wind = windAt(tree.x);
+      const sway = (tree.kind === 'bush' ? 0.02 : 0.05) * wind * tree.h;
+      const { shape, mound, h, seed } = tree;
+      for (let j = 0; j < POINTS; j++) {
+        const lx = mound[2 * j] + (shape[2 * j] - mound[2 * j]) * p;
+        const ly = mound[2 * j + 1] + (shape[2 * j + 1] - mound[2 * j + 1]) * p;
+        const up = Math.max(0, -ly);
+        let x = tree.x + lx * h + sway * up * up;
+        let y = base + ly * h;
+        x += amp * noise(x * 0.03 + flow, y * 0.03 + seed);
+        y += amp * noise(x * 0.03 + flow + 30, y * 0.03 + seed + 30);
+        buffer[2 * j] = x;
+        buffer[2 * j + 1] = y;
+      }
+      ctx.beginPath();
+      ctx.moveTo(buffer[0], buffer[1]);
+      for (let j = 1; j < POINTS; j++)
+        ctx.lineTo(buffer[2 * j], buffer[2 * j + 1]);
+      ctx.closePath();
+      ctx.fill();
+    }
   };
 
   const gust = (direction: 1 | -1) => {
@@ -381,5 +553,5 @@ export const createForestRenderer = (
     nextGust = lastTime + opts.gustEvery;
   };
 
-  return { resize, draw, gust, windAt, grown: () => grownLevel, layout };
+  return { resize, draw, setOptions, setMark, gust, windAt, layout };
 };

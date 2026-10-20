@@ -9,12 +9,14 @@ import {
   type ForestLayout,
   type ForestOptions,
   type ForestRenderer,
+  type MarkOptions,
   createForestRenderer,
 } from './forest-renderer';
 
 type ForestProps = {
   className?: string;
-  options?: Partial<ForestOptions>;
+  options: ForestOptions;
+  mark: MarkOptions;
   /** The live renderer, for the mark to read the wind and the shell to send gusts. */
   apiRef: RefObject<ForestRenderer | null>;
   onLayout?: (layout: ForestLayout) => void;
@@ -24,20 +26,24 @@ type ForestProps = {
 export const Forest = ({
   className,
   options,
+  mark,
   apiRef,
   onLayout,
 }: ForestProps) => {
   const ref = useRef<HTMLCanvasElement>(null);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  const markRef = useRef(mark);
   const onLayoutRef = useRef(onLayout);
   onLayoutRef.current = onLayout;
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const renderer = createForestRenderer(canvas, optionsRef.current, (l) =>
-      onLayoutRef.current?.(l),
+    const renderer = createForestRenderer(
+      canvas,
+      optionsRef.current,
+      markRef.current,
+      (l) => onLayoutRef.current?.(l),
     );
     if (!renderer) return;
     apiRef.current = renderer;
@@ -67,6 +73,16 @@ export const Forest = ({
       apiRef.current = null;
     };
   }, [apiRef]);
+
+  // Option changes update the live renderer in place, so the motion is not reset.
+  useEffect(() => {
+    optionsRef.current = options;
+    apiRef.current?.setOptions(options);
+  }, [options, apiRef]);
+  useEffect(() => {
+    markRef.current = mark;
+    apiRef.current?.setMark(mark);
+  }, [mark, apiRef]);
 
   return <canvas ref={ref} className={className} />;
 };

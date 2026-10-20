@@ -1,5 +1,5 @@
 import { Outlet, useRouterState } from '@tanstack/react-router';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { MobileNav, NAV_LINKS } from '@/features/nav';
 import { CornerLink } from './corner-link';
 import { Forest } from './forest';
@@ -10,17 +10,24 @@ import {
 } from './forest-renderer';
 import { Logo } from './logo';
 import { SkyTitle } from './sky-title';
+import { loadTuning, Tuner, type Tuning, tuningWanted } from './tuner';
 
 /**
  * The living frame: paper sky over an ink forest on one canvas under every
  * route, the mark growing out of the clearing, the corner links and the
- * bottom nav. The matched route's content renders on top.
+ * bottom nav. The matched route's content renders on top. In dev (or with
+ * `?tune`) a panel of sliders along the bottom tunes it all live.
  */
 export const HomeShell = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const current = NAV_LINKS.find((link) => link.to === pathname);
   const forest = useRef<ForestRenderer | null>(null);
   const [layout, setLayout] = useState<ForestLayout | null>(null);
+  const [tuning, setTuning] = useState<Tuning>(loadTuning);
+  const mark = useMemo(
+    () => ({ logo: tuning.logo, oLift: tuning.oLift, oShift: tuning.oShift }),
+    [tuning.logo, tuning.oLift, tuning.oShift],
+  );
   // Hovering a link sends a breeze from that link's side of the screen.
   const breeze = (corner: string) => (hot: boolean) => {
     if (hot) forest.current?.gust(corner.endsWith('l') ? 1 : -1);
@@ -30,12 +37,15 @@ export const HomeShell = () => {
     <main className="home relative h-dvh w-full overflow-hidden bg-paper text-ink">
       <Forest
         className="absolute inset-0 block h-full w-full"
+        options={tuning}
+        mark={mark}
         apiRef={forest}
         onLayout={setLayout}
       />
       <Logo
         root={layout?.root ?? null}
-        height={layout ? logoHeight(layout.width, layout.height) : 0}
+        height={layout ? logoHeight(layout.width, layout.height, mark.logo) : 0}
+        mark={mark}
         forest={forest}
       />
       <SkyTitle title={current?.label ?? null} />
@@ -66,6 +76,7 @@ export const HomeShell = () => {
       <MobileNav
         onPress={(to) => forest.current?.gust(to === '/music' ? 1 : -1)}
       />
+      {tuningWanted() && <Tuner value={tuning} onChange={setTuning} />}
     </main>
   );
 };

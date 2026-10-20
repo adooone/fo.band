@@ -1,47 +1,40 @@
 import { type RefObject, useEffect, useRef } from 'react';
 import { createNoise2D } from 'simplex-noise';
 import { createClock, prefersReducedMotion, subscribeTick } from '@/lib/ticker';
-import type { ForestRenderer } from './forest-renderer';
-import {
-  LOGO_F,
-  LOGO_O,
-  LOGO_ROOT,
-  LOGO_VIEWBOX,
-  O_LIFT,
-  O_SHIFT,
-} from './logo-paths';
+import type { ForestRenderer, MarkOptions } from './forest-renderer';
+import { LOGO_F, LOGO_O, LOGO_ROOT, LOGO_VIEWBOX } from './logo-paths';
 
 type LogoProps = {
   /** Where the sprout's stem meets the ground, in CSS px. */
   root: { x: number; y: number } | null;
   /** Height of the whole mark in CSS px. */
   height: number;
+  mark: MarkOptions;
   forest: RefObject<ForestRenderer | null>;
 };
 
-const F_GROW_DELAY = 0.7;
-const F_GROW_SECONDS = 2.2;
-const O_RISE_DELAY = 1.6;
-const O_RISE_SECONDS = 3.2;
+const F_RISE_DELAY = 0.9;
+const F_RISE_SECONDS = 2.4;
+const O_RISE_DELAY = 2;
+const O_RISE_SECONDS = 3;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-const easeOutBack = (p: number, c1 = 0.9) => {
-  const c3 = c1 + 1;
-  return 1 + c3 * (p - 1) ** 3 + c1 * (p - 1) ** 2;
-};
-const easeOut = (p: number) => 1 - (1 - p) ** 3;
+const ease = (p: number) => p * p * p * (p * (p * 6 - 15) + 10);
 
 /**
  * The mark: the f is a sprout growing out of the forest, the o a sun hanging
- * above the horizon. On load the f shoots up from the ground and the o rises;
- * then the f sways with the forest's wind and the o floats very slowly. All
- * of it on the shared loop and clamped clock.
+ * above the horizon beside it. On load the f rises smoothly out of the
+ * ground with the morphing forest and the o rises after it; then the f sways
+ * with the forest's wind and the o floats very slowly. All of it on the
+ * shared loop and clamped clock.
  */
-export const Logo = ({ root, height, forest }: LogoProps) => {
+export const Logo = ({ root, height, mark, forest }: LogoProps) => {
   const fRef = useRef<SVGPathElement>(null);
   const oRef = useRef<SVGPathElement>(null);
   const rootRef = useRef(root);
   rootRef.current = root;
+  const markRef = useRef(mark);
+  markRef.current = mark;
 
   useEffect(() => {
     const f = fRef.current;
@@ -55,10 +48,10 @@ export const Logo = ({ root, height, forest }: LogoProps) => {
     const pose = (t: number) => {
       const grow = reduced
         ? 1
-        : easeOutBack(clamp01((t - F_GROW_DELAY) / F_GROW_SECONDS));
+        : ease(clamp01((t - F_RISE_DELAY) / F_RISE_SECONDS));
       const rise = reduced
         ? 1
-        : easeOut(clamp01((t - O_RISE_DELAY) / O_RISE_SECONDS));
+        : ease(clamp01((t - O_RISE_DELAY) / O_RISE_SECONDS));
       const wind = rootRef.current
         ? (forest.current?.windAt(rootRef.current.x) ?? 0)
         : 0;
@@ -67,16 +60,17 @@ export const Logo = ({ root, height, forest }: LogoProps) => {
         (reduced ? 0 : 1.1 * noise(t * 0.17, 5) + 2.2 * wind) * grow;
       f.setAttribute(
         'transform',
-        `translate(${rx} ${ry}) rotate(${angle.toFixed(3)}) scale(${(0.97 + 0.03 * grow).toFixed(4)} ${grow.toFixed(4)}) translate(${-rx} ${-ry})`,
+        `translate(${rx} ${ry}) rotate(${angle.toFixed(3)}) scale(${(0.9 + 0.1 * grow).toFixed(4)} ${grow.toFixed(4)}) translate(${-rx} ${-ry})`,
       );
+      const { oLift, oShift } = markRef.current;
       const bob = reduced ? 0 : 3 * Math.sin((t / 9) * Math.PI * 2);
-      const lift = O_LIFT * rise - 150 * (1 - rise) + bob;
-      const shift = O_SHIFT * rise;
+      const lift = oLift * rise - 150 * (1 - rise) + bob;
+      const shift = oShift * rise;
       o.setAttribute(
         'transform',
         `translate(${shift.toFixed(2)} ${(-lift).toFixed(2)})`,
       );
-      o.setAttribute('opacity', (0.15 + 0.85 * rise).toFixed(3));
+      o.setAttribute('opacity', (0.1 + 0.9 * rise).toFixed(3));
     };
     pose(reduced ? 10 : 0);
     if (reduced) return;
@@ -86,6 +80,7 @@ export const Logo = ({ root, height, forest }: LogoProps) => {
   const scale = height / LOGO_VIEWBOX.h;
   const left = root ? root.x - (LOGO_ROOT.x - LOGO_VIEWBOX.x) * scale : 0;
   const top = root ? root.y - (LOGO_ROOT.y - LOGO_VIEWBOX.y) * scale : 0;
+  const width = LOGO_VIEWBOX.w + mark.oShift;
 
   return (
     <svg
@@ -95,11 +90,11 @@ export const Logo = ({ root, height, forest }: LogoProps) => {
       style={{
         left,
         top,
-        width: (LOGO_VIEWBOX.w + O_SHIFT) * scale,
+        width: width * scale,
         height,
         visibility: root ? 'visible' : 'hidden',
       }}
-      viewBox={`${LOGO_VIEWBOX.x} ${LOGO_VIEWBOX.y} ${LOGO_VIEWBOX.w + O_SHIFT} ${LOGO_VIEWBOX.h}`}
+      viewBox={`${LOGO_VIEWBOX.x} ${LOGO_VIEWBOX.y} ${width} ${LOGO_VIEWBOX.h}`}
     >
       <title>fo</title>
       <path ref={oRef} d={LOGO_O} />
