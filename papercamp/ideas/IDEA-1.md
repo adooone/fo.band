@@ -1,7 +1,7 @@
 ---
 id: IDEA-1
 title: Ліс — the calm home page in green and paper
-type: feature
+type: feat
 status: in-progress
 tags: [web, home, canvas, motion, design, logo]
 created: 2026-10-19
