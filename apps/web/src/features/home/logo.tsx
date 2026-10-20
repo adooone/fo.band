@@ -2,7 +2,14 @@ import { type RefObject, useEffect, useRef } from 'react';
 import { createNoise2D } from 'simplex-noise';
 import { createClock, prefersReducedMotion, subscribeTick } from '@/lib/ticker';
 import type { ForestRenderer } from './forest-renderer';
-import { LOGO_F, LOGO_O, LOGO_ROOT, LOGO_VIEWBOX } from './logo-paths';
+import {
+  LOGO_F,
+  LOGO_O,
+  LOGO_ROOT,
+  LOGO_VIEWBOX,
+  O_LIFT,
+  O_SHIFT,
+} from './logo-paths';
 
 type LogoProps = {
   /** Where the sprout's stem meets the ground, in CSS px. */
@@ -12,13 +19,6 @@ type LogoProps = {
   forest: RefObject<ForestRenderer | null>;
 };
 
-/**
- * Where the o settles relative to Figma, in viewBox units: up above the
- * horizon and a little to the right, clear of the frond, like a sun beside
- * the sprout.
- */
-export const O_LIFT = 72;
-export const O_SHIFT = 88;
 const F_GROW_DELAY = 0.7;
 const F_GROW_SECONDS = 2.2;
 const O_RISE_DELAY = 1.6;
