@@ -24,15 +24,19 @@ Node 24 is pinned through Volta (`volta.node`), Bun and pnpm through `package.js
 
 ## The home page
 
-A paper sky over an ink forest: the lower third of the screen is dark green, the edge
-between them a hand-drawn silhouette of spruces, pines, oaks, bushes and grass. Every
-plant is a small ink polygon sampled finely and displaced by slow simplex noise, so the
-edges look drawn by hand and keep moving a touch. Trees lean with a wind that drifts and
-gusts, grass bends in waves, the ground breathes, and on load the forest grows out of the
-ground from the middle outward. In the clearing the band's mark grows: the f is a sprout
-shooting up from the ground, the o a sun rising beside it and settling above the horizon.
-Hovering a corner link sends a breeze through the forest. On portrait phones the
-composition is the same, with the navigation standing on the forest floor.
+A paper sky over an ink forest: the ground is a wavy line of hills, highest in the
+middle under the band's mark, with a ripple of grass that moves with the wind. On the
+hills stand cartoon trees, each on its own: round crowns on trunks, lollipops, soft
+spruces, bushes, none taller than a third of the mark. Every tree is one smooth
+polygon with the same number of points as a plain mound, so on load the forest morphs
+out of a flat line: the hills swell and each mound turns into its tree, from the middle
+outward, while the f sprouts from the ground and the o rises beside it as the sun.
+Edges wobble a touch like a pencil line, trees lean with a drifting wind and gusts,
+the ground breathes. Hovering a corner link sends a breeze through the forest.
+
+In dev (or with `?tune` in the URL) a panel of sliders along the bottom tunes every
+knob live; values persist in localStorage and the panel prints the ones that differ
+from the defaults, ready to paste into `DEFAULT_OPTIONS` / `DEFAULT_MARK`.
 
 Everything animated shares one `requestAnimationFrame` loop (`src/lib/ticker.ts`) and a
 clock clamped per frame, so a background tab or a long sleep never makes it race.

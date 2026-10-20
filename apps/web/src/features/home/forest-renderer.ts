@@ -504,14 +504,14 @@ export const createForestRenderer = (
       const wind = windAt(x);
       const phase =
         (x / lambda) * TAU - time * opts.grassSpeed * TAU * (0.6 + wind);
+      // A smooth wave (no cusps): blades of grass as rolling bumps.
       const grass =
         opts.grassAmp *
         u *
         swell *
         (0.7 + 0.6 * Math.abs(wind)) *
-        Math.sin(phase);
-      const y =
-        groundAt(x) - Math.abs(grass) + amp * noise(x * 0.02 + flow, 77);
+        (0.5 + 0.5 * Math.sin(phase));
+      const y = groundAt(x) - grass + amp * noise(x * 0.02 + flow, 77);
       ctx.lineTo(x, y);
     }
     ctx.lineTo(W + 10, H + 10);

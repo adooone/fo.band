@@ -35,5 +35,7 @@ per frame (`src/lib/ticker.ts`).
   `forest-renderer.ts` + `forest.tsx` on the shared ticker.
 - [x] The mark: f grows from the clearing, o rises as the sun; corner links and phone nav
   `logo.tsx`, `logo-paths.ts`, `corner-link.tsx`, `home-shell.tsx`, `nav/mobile-nav.tsx`.
+- [x] Cartoon trees on a hilly ground, grass ripple, morph intro, slider panel
+  2026-10-20: each tree a separate smooth polygon morphing from a mound; `tuner.tsx`.
 - [ ] Tune on the dev server with the user (tree shapes, density, wind, mark size, colours)
-  Reviewed live at deimos:3300; batch tweaks into one commit.
+  Reviewed live at deimos:3300 with the sliders; bake the chosen values into the defaults.
