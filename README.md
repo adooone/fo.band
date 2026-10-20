@@ -112,8 +112,8 @@ fo.band/
 Adoo team (`croco-dendy-projects`), linked to this GitHub repo with root directory
 `apps/web`:
 
-- Production: https://fo-band-croco-dendy-projects.vercel.app (every push to `main`);
-  no custom domain yet.
+- Production: https://fo-band.vercel.app (every push to `main`); no custom domain yet.
+  `fo-band-croco-dendy-projects.vercel.app` is the team alias for the same deployment.
 - Every other branch and PR gets its own `fo-band-git-<branch>-…vercel.app` URL
   (behind Vercel login).
 
