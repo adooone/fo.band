@@ -30,6 +30,9 @@
         "name": "Build",
         "cmd": "pnpm build"
       }
-    ]
+    ],
+    "ci": {
+      "repo": "adooone/fo.band"
+    }
   }
 }
