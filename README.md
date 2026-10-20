@@ -105,3 +105,18 @@ fo.band/
 - Conventional commits (`feat:`, `fix:`, `chore:` …) with lowercase subjects — enforced
   by Commitlint on commit.
 - The pre-commit hook runs `pnpm check-types` and `pnpm lint`.
+
+## Deployment
+
+`apps/web` deploys to Vercel as a static Vite app from the `fo-band` project on the
+Adoo team (`croco-dendy-projects`), linked to this GitHub repo with root directory
+`apps/web`:
+
+- Production: https://fo-band-croco-dendy-projects.vercel.app (every push to `main`);
+  no custom domain yet.
+- Every other branch and PR gets its own `fo-band-git-<branch>-…vercel.app` URL
+  (behind Vercel login).
+
+`apps/web/vercel.json` rewrites all routes to `/` for client-side routing. Set `VITE_API_URL`
+in the Vercel project (Settings → Environment Variables) once the API has a public URL.
+`apps/core` runs anywhere Bun runs (`pnpm --filter @fo/core start`).
