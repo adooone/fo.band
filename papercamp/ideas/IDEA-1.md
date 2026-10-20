@@ -37,5 +37,7 @@ per frame (`src/lib/ticker.ts`).
   `logo.tsx`, `logo-paths.ts`, `corner-link.tsx`, `home-shell.tsx`, `nav/mobile-nav.tsx`.
 - [x] Cartoon trees on a hilly ground, grass ripple, morph intro, slider panel
   2026-10-20: each tree a separate smooth polygon morphing from a mound; `tuner.tsx`.
+- [x] One-line skyline, smooth shapes, the mark on the canvas, the f sprouting like a fern
+  2026-10-20: ground, grass and trees as one line; f grows along its spine (`sprout.ts`).
 - [ ] Tune on the dev server with the user (tree shapes, density, wind, mark size, colours)
-  Reviewed live at deimos:3300 with the sliders; bake the chosen values into the defaults.
+  Reviewed live at deimos:3300 with the sidebar sliders; bake the chosen values into the defaults.

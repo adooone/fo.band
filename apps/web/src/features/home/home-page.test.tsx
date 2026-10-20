@@ -34,7 +34,9 @@ describe('HomeShell', () => {
   it('draws the forest on a canvas with the mark over it', async () => {
     await renderAt('/');
     expect(document.querySelector('canvas')).not.toBeNull();
-    expect(document.querySelector('svg[aria-label="fo"]')).not.toBeNull();
+    expect(
+      screen.getByRole('img', { name: 'Ліс і знак fo' }),
+    ).toBeInTheDocument();
   });
 
   it('marks the open section and leads back home from it', async () => {

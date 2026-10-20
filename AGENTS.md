@@ -13,11 +13,13 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
 - `apps/web/` — React 19 site (Vite 8, Tailwind 4, TanStack Router).
   `src/router.tsx` is the route table; `src/routes/` holds route definitions;
   `src/features/<name>/` holds pages and their components. `home/` is the living
-  frame: `forest-renderer.ts` plants and draws the forest on a canvas (hilly ground,
-  grass ripple, separate cartoon trees that morph out of mounds), `forest.tsx` wires
+  frame: `forest-renderer.ts` plants the forest and draws it on a canvas as one
+  skyline (hilly ground, grass ripple, and every tree's outline spliced into the same
+  line, morphing out of mounds), plus the mark with a breathing outline
+  (`logo-paths.ts` from Figma with the f's spine, flattened by `path-outline.ts`;
+  `sprout.ts` grows the f along its spine), `forest.tsx` wires
   it to the shared loop, `tuner.tsx` is the slider panel (dev or `?tune`) whose values
-  live in localStorage and whose defaults are `DEFAULT_OPTIONS` / `DEFAULT_MARK`, `logo.tsx` + `logo-paths.ts` are the mark (paths from
-  Figma "Laboratory" node 519:2), `corner-link.tsx` the corner labels, `sky-title.tsx`
+  live in localStorage and whose defaults are `DEFAULT_OPTIONS` / `DEFAULT_MARK`, `corner-link.tsx` the corner labels, `sky-title.tsx`
   a section's title, `home-shell.tsx` puts them together under every route.
   `nav/` holds the links and the phone's bottom nav. `src/lib/ticker.ts` is the one
   requestAnimationFrame loop and the clamped clock every animation must use.

@@ -84,5 +84,12 @@ export const Forest = ({
     apiRef.current?.setMark(mark);
   }, [mark, apiRef]);
 
-  return <canvas ref={ref} className={className} />;
+  return (
+    <canvas
+      ref={ref}
+      className={className}
+      role="img"
+      aria-label="Ліс і знак fo"
+    />
+  );
 };

@@ -14,7 +14,7 @@ export const MobileNav = ({ onPress }: MobileNavProps) => {
   return (
     <nav
       aria-label="Розділи"
-      className="fixed inset-x-0 bottom-0 z-10 hidden portrait:block"
+      className="absolute inset-x-0 bottom-0 z-10 hidden portrait:block"
     >
       <div
         className="flex items-center justify-center gap-7 px-4 font-serif font-medium text-paper"

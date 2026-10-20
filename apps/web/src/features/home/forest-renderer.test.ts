@@ -5,6 +5,7 @@ import {
   mulberry32,
   POINTS,
   resample,
+  resampleOpen,
   type TreeKind,
   treeShape,
 } from './forest-renderer';
@@ -21,7 +22,7 @@ describe('resample', () => {
 
 describe('treeShape', () => {
   const noise = createNoise2D(mulberry32(1));
-  const kinds: TreeKind[] = ['round', 'lollipop', 'spruce', 'bush'];
+  const kinds: TreeKind[] = ['round', 'oval', 'spruce', 'bush'];
 
   it('stands on the ground, one tall, starting at the base and going over the top', () => {
     for (const kind of kinds) {
@@ -40,15 +41,28 @@ describe('treeShape', () => {
     }
   });
 
-  it('morphs from a mound with the same point count', () => {
-    const tree = resample(treeShape('spruce', 0.5, 2, 0.3, noise), POINTS);
-    const mound = resample(moundShape(0.5), POINTS);
+  it('morphs from a mound with the same point count and the same ends on the ground', () => {
+    const tree = resampleOpen(treeShape('spruce', 0.5, 2, 0.3, noise), POINTS);
+    const mound = resampleOpen(moundShape(0.5), POINTS);
     expect(tree.length).toBe(POINTS * 2);
     expect(mound.length).toBe(POINTS * 2);
+    for (const path of [tree, mound]) {
+      expect(path[1]).toBeCloseTo(0, 6);
+      expect(path[path.length - 1]).toBeCloseTo(0, 6);
+      expect(path[0]).toBeLessThan(0);
+      expect(path[path.length - 2]).toBeGreaterThan(0);
+    }
     for (let i = 1; i < mound.length; i += 2) {
       expect(mound[i]).toBeLessThanOrEqual(1e-9);
       expect(mound[i]).toBeGreaterThanOrEqual(-0.13);
     }
+  });
+});
+
+describe('resampleOpen', () => {
+  it('spreads the points evenly from the first point to the last', () => {
+    const out = resampleOpen([0, 0, 10, 0, 10, 10], 5);
+    expect(out).toEqual([0, 0, 5, 0, 10, 0, 10, 5, 10, 10]);
   });
 });
 

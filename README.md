@@ -24,19 +24,24 @@ Node 24 is pinned through Volta (`volta.node`), Bun and pnpm through `package.js
 
 ## The home page
 
-A paper sky over an ink forest: the ground is a wavy line of hills, highest in the
-middle under the band's mark, with a ripple of grass that moves with the wind. On the
-hills stand cartoon trees, each on its own: round crowns on trunks, lollipops, soft
-spruces, bushes, none taller than a third of the mark. Every tree is one smooth
-polygon with the same number of points as a plain mound, so on load the forest morphs
-out of a flat line: the hills swell and each mound turns into its tree, from the middle
-outward, while the f sprouts from the ground and the o rises beside it as the sun.
-Edges wobble a touch like a pencil line, trees lean with a drifting wind and gusts,
-the ground breathes. Hovering a corner link sends a breeze through the forest.
+A paper sky over an ink forest, and the edge between them is one continuous line, as if
+drawn without lifting the pencil. It runs along a wavy ground of hills, highest in the
+middle under the band's mark, with a ripple of grass that moves with the wind, and at
+every tree it climbs the outline, goes over the crown and comes back down: round and
+oval crowns on short trunks, soft spruces, none taller than a third of the mark. On load
+the forest morphs out of a flat line: the hills swell, the line bulges into mounds and
+each mound grows into its tree, from the middle outward. Then the f sprouts like a fern
+(`sprout.ts`): its outline is bound to its centreline, so it can break ground with a
+rounded tip, stretch up with its tip coiled like a fiddlehead, unfurl into the frond of
+the mark and put out the crossbar as two leaves, ending exactly on the Figma shape. The
+o rises beside it as the sun. The mark lives on the same canvas and its
+outline breathes. Trees lean with a drifting wind and gusts, the ground breathes.
+Hovering a corner link sends a breeze through the forest.
 
 In dev (or with `?tune` in the URL) a panel of sliders along the bottom tunes every
-knob live; values persist in localStorage and the panel prints the ones that differ
-from the defaults, ready to paste into `DEFAULT_OPTIONS` / `DEFAULT_MARK`.
+knob live and «повторити появу» replays the intro; changed values persist in
+localStorage and the panel prints them, ready to paste into `DEFAULT_OPTIONS` /
+`DEFAULT_MARK`.
 
 Everything animated shares one `requestAnimationFrame` loop (`src/lib/ticker.ts`) and a
 clock clamped per frame, so a background tab or a long sleep never makes it race.
