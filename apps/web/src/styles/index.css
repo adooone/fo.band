@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* Caveat Brush by Impallari Type (SIL Open Font License, see
+   fonts/CaveatBrush-OFL.txt): the brush hand of the name, titles and paths. */
+@font-face {
+  font-family: "Caveat Brush";
+  src: url("/fonts/CaveatBrush-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Luminari by Philip Bouwsma (Canada Type), the site's voice everywhere.
+   The same self-hosted file the folk-ui and paper-ui projects use. */
+@font-face {
+  font-family: "Luminari";
+  src: url("/fonts/Luminari-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 88%;
+}
+
 /* KyivType Serif, self-hosted (shared with the radio apps and sbjectv). */
 @font-face {
   font-family: "KyivType Serif";
@@ -43,9 +64,20 @@
   /* Two colours only: forest-green ink and off-white paper. Everything else is a blend. */
   --color-ink: #2d493a;
   --color-paper: #f7f6f1;
-  --font-sans: "KyivType Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "KyivType Serif", Georgia, "Times New Roman", serif;
+  --font-sans:
+    "Luminari", "KyivType Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Luminari", "KyivType Serif", Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, monospace;
+  --font-brush: "Caveat Brush", "Luminari", cursive;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 @layer base {

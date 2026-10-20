@@ -31,14 +31,31 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
 ## Motion rules
 
 - Two colours: `--color-ink` (forest green) and `--color-paper` (off-white). Blends
-  of the two are fine; nothing else.
+  of the two are fine; nothing else, except the pencil line, which is graphite black.
 - Calm and smooth: tiny amplitudes, long wavelengths, slow flow. No glitches, no
-  snapping. Every animation subscribes to `subscribeTick` and reads time from
+  snapping, no overshoot: `ease` (smootherstep) everywhere. The one accent at a page
+  change is the pencil line: a single stroke that traces the skyline by arc length
+  over the morph and fades behind itself, wandering a touch off the contour. Every animation subscribes to `subscribeTick` and reads time from
   `createClock` (clamped per frame), never from `Date.now()` or frame timestamps.
-- Wind and wobble come from slow simplex noise over position and time; anything
+- Wind and the mark's breathing outline come from slow simplex noise over position and time; anything
   that must loop seamlessly is sampled on circles in noise space, and any spin is
   measured against a resting length so the waves never race when a shape changes.
 - Respect `prefers-reduced-motion`: the clock freezes and the picture holds still.
+- Keep a frame cheap: anything that varies over tens of pixels (hills, wind) is tabled
+  once a frame at a coarse pitch and interpolated; the tree and ground outlines carry
+  no per-point noise at all (a pencil wobble was tried and dropped: it cost most of the
+  frame and read as blur). `forest.tsx` lowers the canvas's pixel density when frames
+  run slow and restores it when they run fast; the picture itself never changes.
+- Page changes are morphs in place, never slides or camera flights: the skyline is one
+  polyline, and every tree has a form per page with the same point count. The f of
+  the mark is a tree in that line too (kind `mark`, finer point count): its form on
+  the home and about pages is the sprout's outline cut at the ground, written every
+  frame; on music it sinks into the ground (a flat form) and the stump grows out of
+  the ground beside it as a tree of its own; on finds every tree and the f sink first,
+  then the whole skyline flows into a tree (`trunkOutline`): each point goes to the
+  place as far along the trunk's outline as it was along the land, so the line lifts
+  as one into the trunk on the right and its long branch with twigs and leaves, with
+  no loops left to tangle into gaps. Only the o is drawn on its own.
 
 ## Verify before you finish
 

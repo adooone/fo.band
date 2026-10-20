@@ -36,7 +36,18 @@ rounded tip, stretch up with its tip coiled like a fiddlehead, unfurl into the f
 the mark and put out the crossbar as two leaves, ending exactly on the Figma shape. The
 o rises beside it as the sun. The mark lives on the same canvas and its
 outline breathes. Trees lean with a drifting wind and gusts, the ground breathes.
-Hovering a corner link sends a breeze through the forest.
+Three paths lead out of the forest, on the edges of the screen, with the arrow keys and
+with swipes, and every page is the same forest in another pose, never a slide: right to
+«Music», where the scene draws in to the forest floor, the trees turn into mushrooms and
+a stump grows into a record player (after the back of Jethro Tull's «Songs from the
+Wood»: its cut face, with growth rings, is the record); down to «About», where the
+horizon rises to a thin strip of sky with the mark and the trees shrink under it; left to «Finds», where the trees and the f sink into the ground and the whole land
+lifts into a tree trunk on the right, one long branch reaching out at the top toward
+the title, twigs and leaves on it, leaving a white field for the work. The f is
+part of the skyline, so it morphs like a tree: on music it sinks into the ground and
+the stump grows up in its place, while the o sinks behind the horizon. Every change is
+marked by a pencil line that traces the skyline once and fades, as if the new picture
+were being drawn over the old.
 
 In dev (or with `?tune` in the URL) a panel of sliders along the bottom tunes every
 knob live and «повторити появу» replays the intro; changed values persist in

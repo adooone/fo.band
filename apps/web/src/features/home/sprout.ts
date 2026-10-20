@@ -1,3 +1,4 @@
+import { clamp01, ease } from './easing';
 import type { Outline } from './path-outline';
 
 /**
@@ -14,9 +15,6 @@ import type { Outline } from './path-outline';
  * 3. unfurl: once it is tall, the coil slowly opens into the frond of the mark;
  * 4. leaves: the crossbar sprouts from the stem to both sides.
  */
-
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-const ease = (p: number) => p * p * p * (p * (p * 6 - 15) + 10);
 
 export type Spine = {
   n: number;
@@ -259,11 +257,6 @@ export type SproutPose = {
   leaves: number;
 };
 
-const easeOutBack = (p: number, c1: number) => {
-  const c3 = c1 + 1;
-  return 1 + c3 * (p - 1) ** 3 + c1 * (p - 1) ** 2;
-};
-
 /** Extra spine length past the tip, so the frond's round end is fully out. */
 export const OVERGROW = 30;
 
@@ -278,7 +271,7 @@ export const sproutPose = (
   const g = clamp01(p / 0.62);
   const grown = full * ease(g) ** 0.75;
   const unfurl = ease(clamp01((p - 0.42) / 0.48));
-  const leaves = Math.max(0, easeOutBack(clamp01((p - 0.7) / 0.28), 1.6));
+  const leaves = ease(clamp01((p - 0.7) / 0.28));
   return { grown, coil: coilMax * (1 - unfurl), leaves: p >= 1 ? 1 : leaves };
 };
 

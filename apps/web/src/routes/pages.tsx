@@ -9,6 +9,6 @@ const section = <const TPath extends string>(path: TPath, title: string) =>
     component: () => <SectionPage title={title} />,
   });
 
-export const musicRoute = section('/music', 'Музика');
-export const concertsRoute = section('/concerts', 'Концерти');
-export const aboutRoute = section('/about', 'Про нас');
+export const musicRoute = section('/music', 'Music');
+export const aboutRoute = section('/about', 'About');
+export const findsRoute = section('/finds', 'Finds');

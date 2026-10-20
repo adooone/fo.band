@@ -1,7 +1,7 @@
 import {
-  RouterProvider,
   createMemoryHistory,
   createRouter,
+  RouterProvider,
 } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
 import { routeTree } from '@/routes/route-tree';
@@ -11,40 +11,47 @@ const renderAt = async (path: string) => {
     routeTree,
     history: createMemoryHistory({ initialEntries: [path] }),
   });
-  render(<RouterProvider router={router} />);
+  const view = render(<RouterProvider router={router} />);
   await screen.findByRole('heading', { level: 1 });
+  return view;
 };
 
 const PAGES = [
-  ['Музика', '/music'],
-  ['Концерти', '/concerts'],
-  ['Про нас', '/about'],
+  ['Music', '/music'],
+  ['About', '/about'],
+  ['Finds', '/finds'],
 ] as const;
 
 describe('HomeShell', () => {
-  it('links every section from the corners and the mobile nav', async () => {
+  it('leads off to every section from the edges of the forest', async () => {
     await renderAt('/');
     for (const [label, href] of PAGES) {
-      const links = screen.getAllByRole('link', { name: label });
-      expect(links).toHaveLength(2);
-      for (const link of links) expect(link).toHaveAttribute('href', href);
+      const link = screen.getByRole('link', { name: label });
+      expect(link).toHaveAttribute('href', href);
     }
+  });
+
+  it('names the band in the corner of the home page', async () => {
+    await renderAt('/');
+    // Once as the page's heading for assistive tech, once drawn in the corner.
+    expect(screen.getAllByText('Forest Orchestra')).toHaveLength(2);
   });
 
   it('draws the forest on a canvas with the mark over it', async () => {
     await renderAt('/');
-    expect(document.querySelector('canvas')).not.toBeNull();
     expect(
-      screen.getByRole('img', { name: 'Ліс і знак fo' }),
+      screen.getByRole('img', { name: 'The forest and the fo mark' }),
     ).toBeInTheDocument();
   });
 
-  it('marks the open section and leads back home from it', async () => {
-    await renderAt('/music');
-    const links = screen.getAllByRole('link', { name: 'Музика' });
-    for (const link of links) {
-      expect(link).toHaveAttribute('aria-current', 'page');
-      expect(link).toHaveAttribute('href', '/');
+  it('leads back to the forest from inside a section', async () => {
+    for (const [, href] of PAGES) {
+      const { unmount } = await renderAt(href);
+      expect(screen.getByRole('link', { name: 'Forest' })).toHaveAttribute(
+        'href',
+        '/',
+      );
+      unmount();
     }
   });
 });

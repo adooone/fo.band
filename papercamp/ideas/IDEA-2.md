@@ -37,6 +37,11 @@ fading as it goes. Then the user asked for the f to be part of the skyline
 like the stump, so the morphs are natural: the f is now a tree in the line
 and turns into a leaf on finds; on music it sinks into the ground and the
 stump grows up on its own (the user preferred that to an f-to-stump morph).
+The curl went too: the user saw the strip as a trunk, so on finds the ground
+now sinks the trees and the f and then lifts the whole skyline into a trunk
+with one long, wavering branch at the top reaching toward the title in the
+corner, twigs and leaves on it (stretching the f alone left white gaps in
+the morph; the flat line flows in whole).
 
 ### Phases
 
@@ -48,5 +53,5 @@ stump grows up on its own (the user preferred that to an f-to-stump morph).
 - [x] Музика: the stump record player
 - [x] Знахідки: the land rolls up into a strip, trees turn into leaves
 - [x] A pencil line traces the skyline at every page change
-- [x] The f in the skyline: it sinks on music, becomes the leaf on finds
+- [x] The f in the skyline: it sinks on music and finds; the land lifts into the trunk
 - [ ] Tune with the user on the dev server: stump and record, leaf sizes, timing

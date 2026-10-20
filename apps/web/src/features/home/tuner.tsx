@@ -20,76 +20,88 @@ type Group = { title: string; sliders: Slider[] };
 
 const GROUPS: Group[] = [
   {
-    title: 'Логотип',
+    title: 'Mark',
     sliders: [
       {
         key: 'logo',
-        label: 'розмір, частка висоти',
+        label: 'size, share of height',
         min: 0.15,
         max: 0.6,
         step: 0.01,
       },
-      { key: 'oLift', label: 'o: вгору', min: -40, max: 200, step: 1 },
-      { key: 'oShift', label: 'o: вправо', min: -60, max: 160, step: 1 },
-      { key: 'oScale', label: 'o: розмір', min: 0.3, max: 1.3, step: 0.01 },
-      { key: 'markWobble', label: 'дрож контуру', min: 0, max: 5, step: 0.1 },
-      { key: 'markBreath', label: 'дихання, с', min: 2, max: 15, step: 0.5 },
+      { key: 'oLift', label: 'o: up', min: -40, max: 200, step: 1 },
+      { key: 'oShift', label: 'o: right', min: -60, max: 160, step: 1 },
+      { key: 'oScale', label: 'o: size', min: 0.3, max: 1.3, step: 0.01 },
+      {
+        key: 'markWobble',
+        label: 'outline breathing',
+        min: 0,
+        max: 5,
+        step: 0.1,
+      },
+      { key: 'markBreath', label: 'breath, s', min: 2, max: 15, step: 0.5 },
     ],
   },
   {
-    title: 'Паросток f',
+    title: 'The f sprout',
     sliders: [
-      { key: 'sproutSeconds', label: 'ріст, с', min: 1, max: 12, step: 0.1 },
-      { key: 'coil', label: 'закрученість', min: 0, max: 5, step: 0.05 },
+      { key: 'sproutSeconds', label: 'growth, s', min: 1, max: 12, step: 0.1 },
+      { key: 'coil', label: 'coil', min: 0, max: 5, step: 0.05 },
     ],
   },
   {
-    title: 'Горизонт',
+    title: 'Horizon',
     sliders: [
       {
         key: 'horizon',
-        label: 'висота, частка екрана',
+        label: 'height, share of screen',
         min: 0.5,
         max: 0.9,
         step: 0.01,
       },
-      { key: 'hill', label: 'пагорб у центрі', min: 0, max: 0.2, step: 0.005 },
-      { key: 'waves', label: 'дрібні хвилі', min: 0, max: 0.05, step: 0.001 },
+      {
+        key: 'hill',
+        label: 'hill in the middle',
+        min: 0,
+        max: 0.2,
+        step: 0.005,
+      },
+      { key: 'waves', label: 'small waves', min: 0, max: 0.05, step: 0.001 },
       {
         key: 'waveCount',
-        label: 'кількість хвиль',
+        label: 'wave count',
         min: 0.5,
         max: 8,
         step: 0.1,
       },
-      { key: 'wobble', label: 'дрож лінії', min: 0, max: 4, step: 0.1 },
-      { key: 'breathSeconds', label: 'дихання, с', min: 2, max: 20, step: 0.5 },
+      { key: 'breathSeconds', label: 'breath, s', min: 2, max: 20, step: 0.5 },
     ],
   },
   {
-    title: 'Дерева',
+    title: 'Trees',
     sliders: [
       {
         key: 'treeMax',
-        label: 'макс, частка лого',
+        label: 'max, share of mark',
         min: 0.1,
         max: 0.8,
         step: 0.01,
       },
       {
         key: 'treeMin',
-        label: 'мін, частка макс',
+        label: 'min, share of max',
         min: 0.1,
         max: 1,
         step: 0.01,
       },
-      { key: 'gap', label: 'проміжок', min: 0, max: 3, step: 0.05 },
-      { key: 'clearing', label: 'галявина', min: 0, max: 0.4, step: 0.01 },
-      { key: 'spruces', label: 'частка ялин', min: 0, max: 1, step: 0.05 },
-      { key: 'bushes', label: 'кущі на дерево', min: 0, max: 2, step: 0.05 },
+      { key: 'gap', label: 'gap', min: 0, max: 3, step: 0.05 },
+      { key: 'clearing', label: 'clearing', min: 0, max: 0.4, step: 0.01 },
+      { key: 'spruces', label: 'spruce share', min: 0, max: 1, step: 0.05 },
+      { key: 'oaks', label: 'oak share', min: 0, max: 1, step: 0.05 },
+      { key: 'bushes', label: 'bushes per tree', min: 0, max: 2, step: 0.05 },
       {
         key: 'trunk',
-        label: 'стовбур круглих',
+        label: 'round trunk',
         min: 0.04,
         max: 0.4,
         step: 0.01,
@@ -98,33 +110,33 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: 'Трава',
+    title: 'Grass',
     sliders: [
-      { key: 'grassAmp', label: 'амплітуда', min: 0, max: 8, step: 0.1 },
+      { key: 'grassAmp', label: 'amplitude', min: 0, max: 8, step: 0.1 },
       {
         key: 'grassWavelength',
-        label: 'довжина хвилі',
+        label: 'wavelength',
         min: 6,
         max: 200,
         step: 1,
       },
-      { key: 'grassSpeed', label: 'швидкість', min: 0, max: 3, step: 0.05 },
+      { key: 'grassSpeed', label: 'speed', min: 0, max: 3, step: 0.05 },
     ],
   },
   {
-    title: 'Вітер',
+    title: 'Wind',
     sliders: [
-      { key: 'wind', label: 'сила', min: 0, max: 3, step: 0.05 },
+      { key: 'wind', label: 'strength', min: 0, max: 3, step: 0.05 },
       {
         key: 'gustEvery',
-        label: 'пориви кожні, с',
+        label: 'gust every, s',
         min: 3,
         max: 40,
         step: 0.5,
       },
       {
         key: 'gustSeconds',
-        label: 'порив триває, с',
+        label: 'gust lasts, s',
         min: 1,
         max: 12,
         step: 0.1,
@@ -132,12 +144,12 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: 'Поява',
+    title: 'Intro',
     sliders: [
-      { key: 'morphSeconds', label: 'морф, с', min: 0.3, max: 6, step: 0.1 },
+      { key: 'morphSeconds', label: 'morph, s', min: 0.3, max: 6, step: 0.1 },
       {
         key: 'morphStagger',
-        label: 'затримка до країв, с',
+        label: 'delay to the edges, s',
         min: 0,
         max: 4,
         step: 0.1,
@@ -233,14 +245,14 @@ export const Tuner = ({
         width: `min(${TUNER_WIDTH}, 80vw)`,
         transform: open ? 'none' : 'translateX(100%)',
       }}
-      aria-label="Крутилки"
+      aria-label="Knobs"
     >
       <button
         type="button"
         onClick={onToggle}
         className="absolute top-1/2 right-full -translate-y-1/2 rounded-l bg-black px-1.5 py-3 opacity-60 [writing-mode:vertical-rl] hover:opacity-100"
       >
-        {open ? 'сховати' : 'крутилки'}
+        {open ? 'hide' : 'knobs'}
       </button>
       <div className="flex w-full flex-col bg-black">
         <div className="flex-1 overflow-y-auto px-3 py-3">
@@ -286,14 +298,14 @@ export const Tuner = ({
               onClick={onReplay}
               className="flex-1 rounded border border-white/40 px-2 py-1 hover:bg-white/10"
             >
-              повторити появу
+              replay intro
             </button>
             <button
               type="button"
               onClick={reset}
               className="rounded border border-white/40 px-2 py-1 hover:bg-white/10"
             >
-              скинути
+              reset
             </button>
           </div>
           <code className="block max-h-20 select-all overflow-y-auto break-all opacity-70">

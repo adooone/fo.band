@@ -2,13 +2,13 @@ import { createNoise2D } from 'simplex-noise';
 import {
   bump,
   moundShape,
-  mulberry32,
   POINTS,
   resample,
   resampleOpen,
   type TreeKind,
   treeShape,
 } from './forest-renderer';
+import { mulberry32 } from './rng';
 
 describe('resample', () => {
   it('spreads the points evenly around a closed polygon, starting at the first', () => {
