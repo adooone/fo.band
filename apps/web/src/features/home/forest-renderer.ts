@@ -65,27 +65,27 @@ export type ForestOptions = {
 };
 
 export const DEFAULT_OPTIONS: ForestOptions = {
-  horizon: 0.74,
-  hill: 0.08,
-  waves: 0.012,
-  waveCount: 2.5,
-  treeMax: 0.33,
-  treeMin: 0.45,
-  gap: 0.7,
-  clearing: 0.12,
-  spruces: 0.45,
-  bushes: 0.5,
-  trunk: 0.3,
-  grassAmp: 2.2,
-  grassWavelength: 46,
-  grassSpeed: 0.8,
-  wind: 1,
-  gustEvery: 13,
-  gustSeconds: 4.5,
-  breathSeconds: 7,
-  wobble: 1,
-  morphSeconds: 2.2,
-  morphStagger: 1,
+  horizon: 0.73,
+  hill: 0.045,
+  waves: 0.005,
+  waveCount: 5.9,
+  treeMax: 0.17,
+  treeMin: 0.28,
+  gap: 1.35,
+  clearing: 0.13,
+  spruces: 0.5,
+  bushes: 0,
+  trunk: 0.29,
+  grassAmp: 4.3,
+  grassWavelength: 10,
+  grassSpeed: 0,
+  wind: 3,
+  gustEvery: 3,
+  gustSeconds: 7,
+  breathSeconds: 12,
+  wobble: 3.3,
+  morphSeconds: 0.5,
+  morphStagger: 0.3,
   seed: 3,
 };
 
@@ -301,7 +301,7 @@ export type MarkOptions = {
   oShift: number;
 };
 
-export const DEFAULT_MARK: MarkOptions = { logo: 0.34, oLift: 46, oShift: 14 };
+export const DEFAULT_MARK: MarkOptions = { logo: 0.35, oLift: 41, oShift: 4 };
 
 export const createForestRenderer = (
   canvas: HTMLCanvasElement,
