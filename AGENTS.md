@@ -5,17 +5,18 @@ Project memory (ideas, plans, decisions) lives in `papercamp/` — read it at th
 a session and keep it honest as you work (see `.claude/skills/paper-camp/SKILL.md`).
 
 fo.band is the site of «Лісовий Оркестр», a virtual band. The home page is a calm,
-hand-drawn motion piece: a cross-section of a trunk in dark-green ink with off-white
-growth rings. Talk to the user in Ukrainian.
+hand-drawn motion piece: a paper sky over an ink forest silhouette, with the band's
+mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in Ukrainian.
 
 ## Codebase map
 
 - `apps/web/` — React 19 site (Vite 8, Tailwind 4, TanStack Router).
   `src/router.tsx` is the route table; `src/routes/` holds route definitions;
   `src/features/<name>/` holds pages and their components. `home/` is the living
-  frame: `tree-rings-renderer.ts` draws the rings on a canvas, `tree-rings.tsx`
-  wires it to the shared loop, `heart.tsx` is the breathing name, `corner-link.tsx`
-  the corner labels, `home-shell.tsx` puts them together under every route.
+  frame: `forest-renderer.ts` plants and draws the forest on a canvas, `forest.tsx`
+  wires it to the shared loop, `logo.tsx` + `logo-paths.ts` are the mark (paths from
+  Figma "Laboratory" node 519:2), `corner-link.tsx` the corner labels, `sky-title.tsx`
+  a section's title, `home-shell.tsx` puts them together under every route.
   `nav/` holds the links and the phone's bottom nav. `src/lib/ticker.ts` is the one
   requestAnimationFrame loop and the clamped clock every animation must use.
   `src/styles/index.css` holds the Tailwind theme tokens (`@theme`).
@@ -30,9 +31,9 @@ growth rings. Talk to the user in Ukrainian.
 - Calm and smooth: tiny amplitudes, long wavelengths, slow flow. No glitches, no
   snapping. Every animation subscribes to `subscribeTick` and reads time from
   `createClock` (clamped per frame), never from `Date.now()` or frame timestamps.
-- Anything periodic along a ring is sampled on circles in noise space so it closes
-  without a seam, and its spin is measured against the ring's *resting* length so
-  the waves never race when a ring changes shape.
+- Wind and wobble come from slow simplex noise over position and time; anything
+  that must loop seamlessly is sampled on circles in noise space, and any spin is
+  measured against a resting length so the waves never race when a shape changes.
 - Respect `prefers-reduced-motion`: the clock freezes and the picture holds still.
 
 ## Verify before you finish

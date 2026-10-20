@@ -1,38 +1,44 @@
 import { Outlet, useRouterState } from '@tanstack/react-router';
-import { useState } from 'react';
-import { MobileNav, NAV_LINKS, SECTION_RINGS } from '@/features/nav';
+import { useRef, useState } from 'react';
+import { MobileNav, NAV_LINKS } from '@/features/nav';
 import { CornerLink } from './corner-link';
-import { Heart } from './heart';
-import { TreeRings } from './tree-rings';
-
-const TITLE = 'Лісовий Оркестр';
+import { Forest } from './forest';
+import {
+  type ForestLayout,
+  type ForestRenderer,
+  logoHeight,
+} from './forest-renderer';
+import { Logo } from './logo';
+import { SkyTitle } from './sky-title';
 
 /**
- * The living frame: one canvas under every route, the name in the heart of
- * the trunk, the corner links and the bottom nav. The matched route's
- * content renders on top.
+ * The living frame: paper sky over an ink forest on one canvas under every
+ * route, the mark growing out of the clearing, the corner links and the
+ * bottom nav. The matched route's content renders on top.
  */
 export const HomeShell = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const current = NAV_LINKS.find((link) => link.to === pathname);
-  const [hovered, setHovered] = useState<string | null>(null);
-  // The lit ring: the hovered link's, else the open section's.
-  const litPath = hovered ?? current?.to ?? null;
-  const held = litPath === null ? null : (SECTION_RINGS[litPath] ?? null);
-  const [pith, setPith] = useState<{ x: number; y: number } | null>(null);
+  const forest = useRef<ForestRenderer | null>(null);
+  const [layout, setLayout] = useState<ForestLayout | null>(null);
+  // Hovering a link sends a breeze from that link's side of the screen.
+  const breeze = (corner: string) => (hot: boolean) => {
+    if (hot) forest.current?.gust(corner.endsWith('l') ? 1 : -1);
+  };
 
   return (
-    <main className="home relative h-dvh w-full overflow-hidden bg-ink text-paper">
-      <TreeRings
+    <main className="home relative h-dvh w-full overflow-hidden bg-paper text-ink">
+      <Forest
         className="absolute inset-0 block h-full w-full"
-        held={held}
-        onPith={setPith}
+        apiRef={forest}
+        onLayout={setLayout}
       />
-      <Heart
-        title={current?.label ?? TITLE}
-        section={current !== undefined}
-        at={pith}
+      <Logo
+        root={layout?.root ?? null}
+        height={layout ? logoHeight(layout.width, layout.height) : 0}
+        forest={forest}
       />
+      <SkyTitle title={current?.label ?? null} />
       <Outlet />
       {NAV_LINKS.map((link) => (
         <CornerLink
@@ -41,13 +47,13 @@ export const HomeShell = () => {
           to={link.to}
           label={link.label}
           active={pathname === link.to}
-          onHover={(hot) => setHovered(hot ? link.to : null)}
+          onHover={breeze(link.corner)}
         />
       ))}
-      {/* A quiet mark in the free corner. */}
+      {/* A quiet mark in the free corner, on the ground. */}
       <span
         aria-hidden="true"
-        className="absolute font-sans text-paper opacity-50 portrait:hidden"
+        className="absolute font-sans text-paper opacity-60 portrait:hidden"
         style={{
           right: 'calc(44 * var(--kc))',
           bottom: 'calc(40 * var(--kc))',
@@ -57,7 +63,9 @@ export const HomeShell = () => {
       >
         fo.band
       </span>
-      <MobileNav onHover={setHovered} />
+      <MobileNav
+        onPress={(to) => forest.current?.gust(to === '/music' ? 1 : -1)}
+      />
     </main>
   );
 };

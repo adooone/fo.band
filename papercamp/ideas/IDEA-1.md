@@ -1,35 +1,39 @@
 ---
 id: IDEA-1
-title: Річні кільця — calm home page in green and paper
+title: Ліс — the calm home page in green and paper
 type: feature
 status: in-progress
-tags: [web, home, canvas, motion, design]
+tags: [web, home, canvas, motion, design, logo]
 created: 2026-10-19
 ---
 
-The home page is a cross-section of a trunk: dark-green ink, off-white growth
-rings drawn as hand-drawn ink bands with slow travelling noise (the technique
-from sbjectv's rings, slowed right down), uneven spacing with a few tight
-years, a soft wind wave crossing the picture every ten seconds, the band's
-name breathing in the heart, the pith beating at sixty a minute. The bark is
-the window: inside it the ground is a shade lighter, outside stays ink to the
-screen edges. Corner labels (Музика, Концерти, Про нас) light their ring on
-hover; on portrait phones the trunk is fitted to the width and the navigation
-is a strip at the bottom.
+The home page is a paper sky over an ink forest: the lower third of the screen
+is dark green, the upper two thirds off-white, and the edge between them is a
+hand-drawn silhouette of spruces, pines, oaks, bushes and grass. Every plant is
+a small ink polygon sampled finely and displaced by slow noise, so the edges
+look drawn by hand and keep moving a touch (the sbjectv technique, slowed
+down). Trees lean with a wind that drifts and gusts, grass bends in waves, the
+ground breathes, and on load the forest grows out of the ground from the
+middle outward. In the clearing the mark from Figma ("Laboratory", node 519:2)
+grows: the f is a sprout shooting up from the ground, the o a sun rising and
+settling above the horizon beside it. Corner links (Музика, Концерти, Про нас)
+are ink in the sky and paper on the ground; hovering sends a breeze through
+the forest. Portrait phones keep the composition and get a bottom nav on the
+forest floor.
+
+The first iteration (tree rings, dark ground) was dropped on 2026-10-20 at the
+user's request; the two-colour palette now takes the logo's green (#2d493a).
 
 Everything animated shares one requestAnimationFrame loop and a clock clamped
-per frame (`src/lib/ticker.ts`); the wobble's spin is measured against each
-ring's resting length so the waves never race.
+per frame (`src/lib/ticker.ts`).
 
 ### Phases
 
 - [x] Scaffold the monorepo like sbjectv.shop (pnpm 12, Turbo 2, Biome 2, web + core + types)
-  Ports 3300/3301, `@fo/*` scope, Paper Camp, AGENTS.md and README.md.
-- [x] Palette and type: ink `#0b2a1c`, paper `#f3f1e8`, KyivType Serif / Sans
-  Tokens in the Tailwind `@theme`; fonts self-hosted.
-- [x] Tree rings on the canvas: growth rings, wind wave, pith beat, hover glow
-  `tree-rings-renderer.ts` + `tree-rings.tsx` on the shared ticker with adaptive quality.
-- [x] Name in the heart, corner links, section routes, phone layout
-  `heart.tsx`, `corner-link.tsx`, `home-shell.tsx`, `nav/mobile-nav.tsx`.
-- [ ] Tune on the dev server with the user (amplitudes, spacing, colours, type size)
+  Ports 3300/3301, `@fo/*` scope, Paper Camp, AGENTS.md and README.md, GitHub, Vercel.
+- [x] Forest silhouette on the canvas: plants, wind, gusts, breath, grow-in
+  `forest-renderer.ts` + `forest.tsx` on the shared ticker.
+- [x] The mark: f grows from the clearing, o rises as the sun; corner links and phone nav
+  `logo.tsx`, `logo-paths.ts`, `corner-link.tsx`, `home-shell.tsx`, `nav/mobile-nav.tsx`.
+- [ ] Tune on the dev server with the user (tree shapes, density, wind, mark size, colours)
   Reviewed live at deimos:3300; batch tweaks into one commit.

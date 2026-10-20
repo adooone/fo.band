@@ -1,24 +1,25 @@
 import { Link, useRouterState } from '@tanstack/react-router';
-import { NAV_LINKS } from './links';
-import { PaperLine } from './paper-line';
+import { NAV_LINKS, type SectionPath } from './links';
 
 type MobileNavProps = {
-  onHover: (to: string | null) => void;
+  onPress: (to: SectionPath) => void;
 };
 
-/** Bottom navigation for portrait screens; the desktop uses the corner links. */
-export const MobileNav = ({ onHover }: MobileNavProps) => {
+/**
+ * Bottom navigation for portrait screens, standing on the forest floor in
+ * paper; the desktop uses the corner links.
+ */
+export const MobileNav = ({ onPress }: MobileNavProps) => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav
       aria-label="Розділи"
-      className="fixed inset-x-0 bottom-0 z-10 hidden bg-ink portrait:block"
+      className="fixed inset-x-0 bottom-0 z-10 hidden portrait:block"
     >
-      <PaperLine className="block h-3 w-full" />
       <div
-        className="flex items-center justify-center gap-7 px-4 pt-2 font-serif font-medium text-paper"
+        className="flex items-center justify-center gap-7 px-4 font-serif font-medium text-paper"
         style={{
-          paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+          paddingBottom: 'max(18px, env(safe-area-inset-bottom))',
           fontSize: 'clamp(14px, 4vw, 17px)',
           letterSpacing: '0.06em',
         }}
@@ -32,9 +33,7 @@ export const MobileNav = ({ onHover }: MobileNavProps) => {
               aria-current={active ? 'page' : undefined}
               className="relative block whitespace-nowrap py-3 transition-opacity duration-500"
               style={{ opacity: active ? 1 : 0.8 }}
-              onPointerDown={() => onHover(link.to)}
-              onPointerUp={() => onHover(null)}
-              onPointerCancel={() => onHover(null)}
+              onPointerDown={() => onPress(link.to)}
             >
               {link.label}
               <span

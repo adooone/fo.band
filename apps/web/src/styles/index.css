@@ -41,8 +41,8 @@
 
 @theme {
   /* Two colours only: forest-green ink and off-white paper. Everything else is a blend. */
-  --color-ink: #0b2a1c;
-  --color-paper: #f3f1e8;
+  --color-ink: #2d493a;
+  --color-paper: #f7f6f1;
   --font-sans: "KyivType Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "KyivType Serif", Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, monospace;
@@ -50,12 +50,12 @@
 
 @layer base {
   /* Everything outside the canvas (rubber-band overscroll, the area under
-     the phone's status bar) is ink, like the canvas edges. */
+     the phone's status bar) is paper, like the sky. */
   html {
-    @apply bg-ink;
+    @apply bg-paper;
   }
   body {
-    @apply bg-ink text-paper font-serif antialiased;
+    @apply bg-paper text-ink font-serif antialiased;
   }
 
   /* One design pixel of the 1440 × 1024 frame, as a length. */
@@ -65,7 +65,7 @@
     --kc: max(var(--k), 0.66px);
   }
 
-  /* Portrait phones: the trunk is fitted to the width, the frame's short side. */
+  /* Portrait phones: the same composition fitted to the width. */
   @media (orientation: portrait) {
     .home {
       --k: min(100vw / 1024, 100vh / 1440);

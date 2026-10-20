@@ -31,9 +31,10 @@ describe('HomeShell', () => {
     }
   });
 
-  it('draws the trunk on a canvas', async () => {
+  it('draws the forest on a canvas with the mark over it', async () => {
     await renderAt('/');
     expect(document.querySelector('canvas')).not.toBeNull();
+    expect(document.querySelector('svg[aria-label="fo"]')).not.toBeNull();
   });
 
   it('marks the open section and leads back home from it', async () => {

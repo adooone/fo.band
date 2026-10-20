@@ -24,14 +24,15 @@ Node 24 is pinned through Volta (`volta.node`), Bun and pnpm through `package.js
 
 ## The home page
 
-«Річні кільця»: the screen is a dark-green cross-section of a trunk. Off-white growth
-rings, spaced unevenly with a few tight years, are drawn as ink bands displaced by
-slow travelling simplex noise (tiny amplitude, long wavelength). The outermost ring is
-the bark: inside it the ground is a shade lighter, outside stays ink to the screen
-edges. A soft wind wave crosses the picture every ten seconds, the name in the heart
-breathes slowly, the pith beats at sixty a minute. Hovering lights the nearest ring;
-the corner links light their section's ring. On portrait phones the trunk is fitted to
-the width and the navigation is a strip at the bottom.
+A paper sky over an ink forest: the lower third of the screen is dark green, the edge
+between them a hand-drawn silhouette of spruces, pines, oaks, bushes and grass. Every
+plant is a small ink polygon sampled finely and displaced by slow simplex noise, so the
+edges look drawn by hand and keep moving a touch. Trees lean with a wind that drifts and
+gusts, grass bends in waves, the ground breathes, and on load the forest grows out of the
+ground from the middle outward. In the clearing the band's mark grows: the f is a sprout
+shooting up from the ground, the o a sun rising beside it and settling above the horizon.
+Hovering a corner link sends a breeze through the forest. On portrait phones the
+composition is the same, with the navigation standing on the forest floor.
 
 Everything animated shares one `requestAnimationFrame` loop (`src/lib/ticker.ts`) and a
 clock clamped per frame, so a background tab or a long sleep never makes it race.

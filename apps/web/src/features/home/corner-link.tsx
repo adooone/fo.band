@@ -22,8 +22,9 @@ type CornerLinkProps = {
 };
 
 /**
- * A calm, upright label in an ink corner. Hovering it lights the section's
- * ring on the trunk (through `onHover`) and draws a hairline under the word.
+ * A calm, upright label in a corner: ink in the sky, paper on the ground.
+ * Hovering it sends a breeze through the forest (through `onHover`) and
+ * draws a hairline under the word.
  */
 export const CornerLink = ({
   corner,
@@ -33,6 +34,8 @@ export const CornerLink = ({
   onHover,
 }: CornerLinkProps) => {
   const edge = EDGES[corner];
+  const tone = edge.y === 'top' ? 'text-ink' : 'text-paper';
+  const line = edge.y === 'top' ? 'bg-ink' : 'bg-paper';
   const style: CSSProperties = {
     [edge.x]: px(44),
     [edge.y]: px(40),
@@ -43,7 +46,7 @@ export const CornerLink = ({
     <Link
       to={active ? '/' : to}
       aria-current={active ? 'page' : undefined}
-      className="group absolute block whitespace-nowrap font-serif font-medium text-paper outline-none portrait:hidden"
+      className={`group absolute block whitespace-nowrap font-serif font-medium outline-none portrait:hidden ${tone}`}
       style={style}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
@@ -53,10 +56,9 @@ export const CornerLink = ({
       <span className="block opacity-80 transition-opacity duration-500 group-hover:opacity-100 group-focus-visible:opacity-100">
         {label}
       </span>
-      {/* A hairline that draws in from the corner's side. */}
       <span
         aria-hidden="true"
-        className="mt-[0.35em] block h-px bg-paper opacity-80 transition-[width] duration-700 ease-out"
+        className={`mt-[0.35em] block h-px opacity-80 transition-[width] duration-700 ease-out ${line}`}
         style={{
           width: active ? '100%' : '0%',
           marginLeft: edge.x === 'right' ? 'auto' : undefined,
@@ -64,7 +66,7 @@ export const CornerLink = ({
       />
       <span
         aria-hidden="true"
-        className="block h-px -translate-y-px bg-paper opacity-60 transition-[width] duration-700 ease-out group-hover:w-full group-focus-visible:w-full"
+        className={`block h-px -translate-y-px opacity-60 transition-[width] duration-700 ease-out group-hover:w-full group-focus-visible:w-full ${line}`}
         style={{
           width: '0%',
           marginLeft: edge.x === 'right' ? 'auto' : undefined,
