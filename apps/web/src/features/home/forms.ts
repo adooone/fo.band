@@ -99,12 +99,50 @@ export const mushroomShape = (
   const pick: MushroomKind[] = ['bolete', 'porcini', 'bell', 'agaric'];
   const k = kind ?? pick[Math.floor(rng() * pick.length)];
   const lean = (rng() - 0.5) * 0.1 * height;
+  // `dome` shapes the top (1 a half ellipse, less a flatter cushion, more
+  // a bell); `under` is how far the cap's edge curls under the rim, as a
+  // share of the cap's height: thick on a porcini, thin on a bell.
   const shape = {
-    bolete: { stem: 0.5, stemW: 0.13, capW: 0.36, dome: 0.8, skirt: 0 },
-    porcini: { stem: 0.56, stemW: 0.14, capW: 0.38, dome: 0.65, skirt: 0 },
-    bell: { stem: 0.5, stemW: 0.07, capW: 0.26, dome: 1.7, skirt: 0 },
-    agaric: { stem: 0.55, stemW: 0.09, capW: 0.36, dome: 1.0, skirt: 0.72 },
-    mycena: { stem: 0.74, stemW: 0.035, capW: 0.16, dome: 1.4, skirt: 0 },
+    bolete: {
+      stem: 0.5,
+      stemW: 0.13,
+      capW: 0.38,
+      dome: 0.95,
+      under: 0.3,
+      skirt: 0,
+    },
+    porcini: {
+      stem: 0.54,
+      stemW: 0.14,
+      capW: 0.44,
+      dome: 0.85,
+      under: 0.35,
+      skirt: 0,
+    },
+    bell: {
+      stem: 0.5,
+      stemW: 0.07,
+      capW: 0.26,
+      dome: 1.7,
+      under: 0.12,
+      skirt: 0,
+    },
+    agaric: {
+      stem: 0.55,
+      stemW: 0.09,
+      capW: 0.37,
+      dome: 1.1,
+      under: 0.2,
+      skirt: 0.72,
+    },
+    mycena: {
+      stem: 0.74,
+      stemW: 0.035,
+      capW: 0.16,
+      dome: 1.4,
+      under: 0.12,
+      skirt: 0,
+    },
   }[k];
   const stemH = shape.stem * height;
   const capH = height - stemH;
@@ -134,16 +172,17 @@ export const mushroomShape = (
     push(-sw * 0.9 + lean * 0.6, -skirtY - 0.04 * height);
   }
   push(-sw * 0.85 + lean, -stemH * 0.95);
-  // The underside out to the rim, the rim hanging a touch.
-  push(-cw * 0.55 + lean, -stemH - 0.02 * height);
-  push(-cw + lean, -stemH + 0.015 * height);
-  const n = 22;
-  for (let i = 1; i < n; i++) {
-    const a = Math.PI - (Math.PI * i) / n;
-    push(cw * Math.cos(a) + lean, -stemH - capH * Math.sin(a) ** shape.dome);
+  // The cap: up and over the top from edge to edge, curling a little under
+  // each so the edge is round, never a corner; the underside runs straight
+  // from the curl to the stem.
+  const curl = 0.35;
+  const n = 26;
+  for (let i = 0; i <= n; i++) {
+    const a = Math.PI + curl - ((Math.PI + 2 * curl) * i) / n;
+    const s = Math.sin(a);
+    const y = s >= 0 ? s ** shape.dome : s * shape.under;
+    push(cw * Math.cos(a) + lean, -stemH - capH * y);
   }
-  push(cw + lean, -stemH + 0.015 * height);
-  push(cw * 0.55 + lean, -stemH - 0.02 * height);
   push(sw * 0.85 + lean, -stemH * 0.95);
   if (shape.skirt > 0) {
     push(sw * 0.9 + lean * 0.6, -skirtY - 0.04 * height);

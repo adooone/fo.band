@@ -129,6 +129,13 @@ const LOOK_FAR_CLOUDS = 32;
 const LOOK_HILLS = 20;
 const LOOK_LAND = 8;
 const LOOK_SECONDS = 0.4;
+/**
+ * The o sets quickly (this long) as the f sinks for music or the dive
+ * starts for art, and comes back up from behind the hill slowly, like a
+ * sun, over this long.
+ */
+const O_SET_SECONDS = 0.7;
+const O_RISE_BACK_SECONDS = 1.8;
 /** How close the music page draws in to the forest floor. */
 const MUSIC_ZOOM = 2.1;
 /**
@@ -253,7 +260,7 @@ export type ForestOptions = {
   morphSeconds: number;
   /** Extra delay for the trees at the edges, seconds. */
   morphStagger: number;
-  /** Seed for the forest, so it is the same forest on every visit. */
+  /** Seed for the forest: the trees, their places and their mushrooms (the shell draws a new one on every visit). */
   seed: number;
   /**
    * The far hills behind the horizon: how much ink is in their tint, how
@@ -822,6 +829,9 @@ export const createForestRenderer = (
     seconds: number,
     curve: (p: number) => number = ease,
   ) => v.from + (v.to - v.from) * curve(clamp01((t - v.start) / seconds));
+  /** How far the o has set: quick to set, slow to rise back. */
+  const oLevel = (t: number) =>
+    level(oSet, t, oSet.to < oSet.from ? O_RISE_BACK_SECONDS : O_SET_SECONDS);
 
   /**
    * The resting ground line at a world x: hills highest in the middle of
@@ -1256,7 +1266,7 @@ export const createForestRenderer = (
     // sunk. The o sinks as the dive starts (the camera never leaves it
     // behind, so it would stand huge at the edge), and comes back only
     // once the hills are back.
-    oSet.from = level(oSet, now, 0.7);
+    oSet.from = oLevel(now);
     oSet.to = next === 'finds' ? 1 : 0;
     oSet.start = now + out;
     const hiding = next === 'about' && page !== 'about';
@@ -1272,7 +1282,9 @@ export const createForestRenderer = (
     // Leaving, the stump sinks as the scene draws back, the trees turn in
     // the same wave and the f grows back last.
     if (next === 'music') musical.start = now + out + 0.2;
-    pencilStart = now;
+    // The pencil traces the change home from music; into music the scene
+    // drawing in is enough.
+    if (next !== 'music') pencilStart = now;
     if (next === 'about') birdsLaunch = now + 0.1;
     // The forest stirs in the direction of travel.
     gust(next === 'music' || page === 'finds' ? 1 : -1);
@@ -1455,7 +1467,7 @@ export const createForestRenderer = (
     // The o sets with the f for finds, early on the way out and only as
     // the hills come back on the way home; for music it sinks before the
     // scene draws in. On about the mark stays, riding up and shrinking.
-    const oDown = level(oSet, time, 0.7);
+    const oDown = oLevel(time);
     const mk = 1 + (ABOUT_MARK - 1) * ease(rise);
     const markX = markTree ? W / 2 + (markTree.x - W / 2) * mk : W / 2;
     const oDownMusic =
@@ -1850,11 +1862,14 @@ export const createForestRenderer = (
     drawRecordPlayer(time, groundAt);
     // Off the home page the o sinks into the ground: early on the way in,
     // and only once the scene has nearly come home on the way back, so it
-    // never pokes out of the stump.
+    // never pokes out of the stump. Back from art it rises the whole slow
+    // way, a sun coming up.
     drawO(
       time,
       intro,
-      clamp01((Math.max(oDownMusic, oDown) - 0.18) / 0.32),
+      oSet.to < oSet.from
+        ? Math.max(clamp01((oDownMusic - 0.18) / 0.32), oDown)
+        : clamp01((Math.max(oDownMusic, oDown) - 0.18) / 0.32),
       mk,
       groundAt,
       { x: markX, y: groundAt(markX), sx, sy },

@@ -26,8 +26,9 @@ type Edge = 'paper' | 'ink' | null;
  * paper sky on top and ink land below; on the art page no strips, as its
  * white field meets the bottom and the trunk's ink the top left, and on a
  * phone, where that page stays all ink, ink at both. The colours switch at once, never in a transition
- * (Safari keeps whatever it sampled halfway through), once the dive has
- * filled the screen on the way in and once it has cleared on the way out.
+ * (Safari keeps whatever it sampled halfway through): on a phone once the
+ * dive has filled the screen on the way in, elsewhere at once, and once it
+ * has cleared on the way out.
  */
 const useEdges = (page: PageId, ink = INK) => {
   const [edges, setEdges] = useState<{ top: Edge; bottom: Edge }>({
@@ -59,7 +60,11 @@ const useEdges = (page: PageId, ink = INK) => {
           ?.setAttribute('content', dark ? ink : PAPER);
       }, delay);
     };
-    apply(art ? 1200 : wasArt.current ? 900 : 0);
+    // Into art on a desktop the strips go at once, before the dive fills
+    // the screen (a paper strip would lie over the ink); on a phone they
+    // turn ink once it has. Out of art they come back only once the
+    // curtain has closed and the camera has risen out of the land.
+    apply(art ? (phone?.matches ? 1200 : 0) : wasArt.current ? 1900 : 0);
     wasArt.current = art;
     const onChange = () => apply(0);
     phone?.addEventListener('change', onChange);
@@ -101,6 +106,12 @@ export const HomeShell = () => {
   const [firstPage] = useState(page);
   const [reduced] = useState(prefersReducedMotion);
   const stage = useIntro(firstPage, reduced);
+  // Another forest on every visit: the trees, their places and the
+  // mushrooms that grow in their stead all come from the seed.
+  const [options] = useState(() => ({
+    ...DEFAULT_OPTIONS,
+    seed: 1 + Math.floor(Math.random() * 100000),
+  }));
 
   return (
     <IntroContext.Provider value={stage}>
@@ -110,7 +121,7 @@ export const HomeShell = () => {
       >
         <Forest
           className="absolute inset-0 block h-full w-full"
-          options={DEFAULT_OPTIONS}
+          options={options}
           mark={DEFAULT_MARK}
           ink={ink}
           page={page}
