@@ -47,12 +47,11 @@ export const SkyTitle = ({ title, page }: SkyTitleProps) => {
       aria-hidden="true"
     >
       <span
-        className="block font-brush"
+        className="block font-brush title-weight"
         style={{
           fontSize: strip
             ? 'clamp(30px, calc(44 * var(--k)), 54px)'
             : 'var(--title)',
-          letterSpacing: '0.01em',
         }}
       >
         {title}

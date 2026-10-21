@@ -190,3 +190,13 @@
     }
   }
 }
+
+/* The titles' face (Luminari) has one weight only; a hairline of its own
+   colour drawn under the fill thickens every stroke evenly, in step with the
+   size, without filling the counters, and the letters stand a touch apart
+   to make room for it. */
+@utility title-weight {
+  -webkit-text-stroke: 0.035em currentColor;
+  paint-order: stroke fill;
+  letter-spacing: 0.02em;
+}

@@ -22,10 +22,9 @@ export const BandName = ({ page }: { page: PageId }) => {
       aria-hidden={!home}
     >
       <span
-        className="block whitespace-nowrap font-brush"
+        className="block whitespace-nowrap font-brush title-weight"
         style={{
           fontSize: 'var(--title)',
-          letterSpacing: '0.01em',
         }}
       >
         {NAME}
