@@ -18,6 +18,7 @@ import {
   TRUNK_EDGE_POINTS,
   trunkOutline,
 } from './forms';
+import { type InstrumentKind, type Shape, shapeOf } from './instruments';
 import {
   LOGO_F,
   LOGO_F_SPINE,
@@ -105,6 +106,8 @@ const SINK_DRAW = 0.7;
 const LAND_RIPPLE = 0.012;
 const LAND_SECONDS = 1.6;
 const LAND_BOB = 0.05;
+/** How deep the instruments' feet sit in the ground, of their height. */
+const INSTRUMENT_SINK = 0.07;
 /**
  * The mark follows the horizon's move with a little inertia: its top is a
  * weight on a soft spring over its foot, so it squashes as the ground
@@ -683,7 +686,7 @@ const O_RISE_SECONDS = 3;
  */
 const traceSmooth = (
   target: CanvasRenderingContext2D,
-  buf: Float64Array,
+  buf: Float64Array | number[],
   n: number,
 ) => {
   const mx = (buf[0] + buf[2]) / 2;
@@ -720,6 +723,22 @@ export const createForestRenderer = (
   let trees: Tree[] = [];
   /** The f, planted in the skyline like a tree. */
   let markTree: Tree | null = null;
+  /**
+   * The orchestra's instruments among the trees: where each stands, how
+   * tall, its shape, and how far it is shown (1) or sunk (0), animated
+   * like a tree's morph; `delay` is its turn in the opening.
+   */
+  type Instrument = {
+    kind: InstrumentKind;
+    x: number;
+    h: number;
+    shape: Shape;
+    delay: number;
+    show: { from: number; to: number; start: number; seconds: number };
+    /** How far it stands this frame: grown in the opening and shown on the page. */
+    level: number;
+  };
+  let instruments: Instrument[] = [];
   let stumpTree: Tree | null = null;
   let buffer = new Float64Array(Math.max(MARK_POINTS, MARK_F.n) * 2);
   /** The f's outline for one frame, in viewBox units. */
@@ -750,6 +769,13 @@ export const createForestRenderer = (
   let farRise = new Float64Array(0);
   /** The forest floor seen close on the music page: tufts and little plants along the ground. */
   let floorBumps = new Float64Array(0);
+  /**
+   * Grass in the instruments' clearings on the home page: for every ground
+   * sample, which instrument's clearing it is in (−1 for none) and how
+   * much, fading out at the clearing's edge.
+   */
+  let grassOf = new Int8Array(0);
+  let grassK = new Float64Array(0);
   let farColour = tinted(opts.farTint, ink);
   /**
    * The slowly varying part of the ground (hills and breath)
@@ -940,6 +966,50 @@ export const createForestRenderer = (
       0.5 * logoWidth(logoH, markOpts.oShift) + 0.05 * S,
     );
     const list: Tree[] = [];
+    // The orchestra: the cello left of the mark, the drums just right of
+    // it under the sun, the guitar as far right as the cello is left, each
+    // in a little clearing of its own; the size of the tallest trees.
+    const gapI = 0.6 * maxH;
+    const plan: [InstrumentKind, number][] = [
+      ['cello', 1.1 * maxH],
+      ['drums', 0.95 * maxH],
+      ['guitar', 1.1 * maxH],
+      ['keys', 0.6 * maxH],
+    ];
+    const made = plan.map(([kind, h]) => ({ kind, h, shape: shapeOf(kind) }));
+    const half = (i: number) => made[i].shape.halfWidth * made[i].h;
+    // The drums right under the sun, a touch to its right: where the o
+    // stands once risen.
+    const root = markRoot();
+    const sunX =
+      root.x +
+      ((oCentre.x + markOpts.oShift - LOGO_ROOT.x) * root.logoH) /
+        LOGO_VIEWBOX.h;
+    // Past the o's edge (its radius is about a seventh of the mark's height),
+    // so the crook stands clear of the sun.
+    const drumsX = sunX + 0.14 * root.logoH + 0.2 * half(1);
+    // The guitar well out toward the corner, the cello as far the other way.
+    const guitarX = Math.max(
+      drumsX + half(1) + gapI + half(2),
+      W / 2 + 0.38 * W,
+    );
+    const celloX = W - guitarX;
+    // The keys under the f, as far left of the middle as the drums are right.
+    const keysX = W - drumsX;
+    instruments = [celloX, drumsX, guitarX, keysX].map((x, i) => ({
+      ...made[i],
+      x,
+      delay:
+        0.05 +
+        (opts.morphStagger * Math.abs(x - W / 2)) / (W / 2) +
+        0.1 * rng(),
+      show: { from: 1, to: 1, start: -1e9, seconds: 1 },
+      level: 0,
+    }));
+    const zones = instruments.map((it) => [
+      it.x - it.shape.halfWidth * it.h - gapI,
+      it.x + it.shape.halfWidth * it.h + gapI,
+    ]);
     const add = (
       kind: TreeKind,
       x: number,
@@ -1003,6 +1073,12 @@ export const createForestRenderer = (
         x +=
           side *
           (prevW / 2 + opts.gap * meanW * (0.3 + 1.4 * rng()) + open + w / 2);
+        // Not in an instrument's clearing: step past it.
+        for (const [z0, z1] of zones) {
+          if (x + w / 2 > z0 && x - w / 2 < z1) {
+            x = side > 0 ? z1 + w / 2 : z0 - w / 2;
+          }
+        }
         prevW = w;
         const seed = rng() * 100;
         const tree =
@@ -1111,6 +1187,19 @@ export const createForestRenderer = (
       .slice(0, 4)
       .map((t) => ({ x: t.x, y: groundRest(t.x) - t.h }));
     plantFar();
+    // Grass under the instruments, over their clearings.
+    grassOf = new Int8Array(groundX.length).fill(-1);
+    grassK = new Float64Array(groundX.length);
+    instruments.forEach((it, j) => {
+      const reach = 1.3 * (it.shape.halfWidth * it.h + gapI);
+      for (let i = 0; i < groundX.length; i++) {
+        const k = bump((groundX[i] - it.x) / reach);
+        if (k > grassK[i]) {
+          grassK[i] = k;
+          grassOf[i] = j;
+        }
+      }
+    });
     markTree = trees.find((t) => t.kind === 'mark') ?? null;
     stumpTree = trees.find((t) => t.kind === 'stump') ?? null;
     const points = trees.reduce((sum, t) => sum + t.n, 0);
@@ -1230,6 +1319,10 @@ export const createForestRenderer = (
         tree.to = next;
         tree.start = -1e9;
       }
+      for (const it of instruments) {
+        it.show.from = it.show.to = instrumentsStand(next) ? 1 : 0;
+        it.show.start = -1e9;
+      }
       return;
     }
     if (next === page) return;
@@ -1334,7 +1427,34 @@ export const createForestRenderer = (
       tree.seconds = seconds;
       tree.start = now + wait + jitter;
     }
+    // The instruments go with the trees: into the ground for music and
+    // about, back up once home, with the camera for finds.
+    for (const it of instruments) {
+      const d = Math.abs(it.x - W / 2) / W;
+      const standing = instrumentsStand(next) ? 1 : 0;
+      it.show.from = showAt(it, now);
+      it.show.to = standing;
+      if (it.show.from === standing) continue;
+      it.show.seconds = standing ? 0.9 : 0.5;
+      it.show.start =
+        now +
+        (toMusic
+          ? out + 0.25 + 0.3 * d
+          : next === 'about'
+            ? 0.15 * d
+            : out + 0.1 + 0.15 * d);
+    }
     page = next;
+  };
+  /** The instruments stand on the home page and through the dive into art. */
+  const instrumentsStand = (p: PageId) => p === 'home' || p === 'finds';
+  /** How far an instrument is up: drawing up a touch before it sinks, swelling past as it grows. */
+  const showAt = (it: Instrument, t: number) => {
+    const { from, to, start, seconds } = it.show;
+    const q = clamp01((t - start) / seconds);
+    const curve =
+      to > from ? swellPast(q, GROW_SWELL) : anticipate(q, SINK_DRAW);
+    return from + (to - from) * curve;
   };
 
   const layout = (): ForestLayout => {
@@ -1603,15 +1723,16 @@ export const createForestRenderer = (
     const farShow = dawn * (1 - m) * sink;
     // Not before they start to rise: their fill runs down behind the land,
     // and during the opening the land is not there yet to cover it.
-    if (farShow > 0.01 && grow > 0.001 && opts.farTint > 0) {
+    const farOn = farShow > 0.01 && grow > 0.001 && opts.farTint > 0;
+    const lift = swell * grow;
+    const hx = look.x * (LOOK_HILLS - LOOK_LAND) * u;
+    const hy = look.y * (LOOK_HILLS - LOOK_LAND) * u * 0.5;
+    if (farOn) {
       ctx.fillStyle = farColour;
       ctx.globalAlpha = farShow;
       ctx.beginPath();
       let first = true;
       let lastX = x0;
-      const lift = swell * grow;
-      const hx = look.x * (LOOK_HILLS - LOOK_LAND) * u;
-      const hy = look.y * (LOOK_HILLS - LOOK_LAND) * u * 0.5;
       for (let i = 0; i < groundX.length; i += 2) {
         const x = groundX[i] + hx;
         if (x < x0) continue;
@@ -1679,8 +1800,18 @@ export const createForestRenderer = (
         ),
       );
       const tuft = (floorBumps[i] ?? 0) * swell;
-      return slowAt(slow, x) - tuft * m;
+      const g = grassOf[i];
+      // Taller than the music page's floor, seen from farther away.
+      const grass = g >= 0 ? 2 * grassK[i] * instruments[g].level : 0;
+      return slowAt(slow, x) - tuft * Math.max(m, grass);
     };
+    // How far each instrument stands this frame: the grass and the
+    // instruments themselves read it.
+    for (const it of instruments) {
+      it.level =
+        swellPast(clamp01((intro - it.delay) / opts.morphSeconds), GROW_SWELL) *
+        showAt(it, time);
+    }
     growMark(time, intro);
     const squash = springMark(time, groundAt(markX), rise > 0 || rooted.to > 0);
     const sx = 1 - squash / 2;
@@ -1784,7 +1915,8 @@ export const createForestRenderer = (
       const right = buffer[2 * (tree.n - 1)];
       while (gi < groundX.length && groundX[gi] < left) {
         emit(groundX[gi], groundLine(groundX[gi]));
-        gi += stride;
+        // Every sample where there is grass to draw.
+        gi += grassOf[gi] >= 0 ? 1 : stride;
       }
       while (gi < groundX.length && groundX[gi] <= right) gi++;
       for (let j = 0; j < tree.n; j++) {
@@ -1793,7 +1925,7 @@ export const createForestRenderer = (
     }
     while (gi < groundX.length && groundX[gi] <= x1) {
       emit(groundX[gi], groundLine(groundX[gi]));
-      gi += stride;
+      gi += grassOf[gi] >= 0 ? 1 : stride;
     }
 
     ctx.beginPath();
@@ -1859,6 +1991,58 @@ export const createForestRenderer = (
     }
     camera();
 
+    /**
+     * What stands behind an instrument's cut-out, painted into its clip
+     * over this stretch of the world (x0..x1): paper, the far hills, the
+     * land. So a sound hole shows the hills through it, never a white
+     * disc glowing on them.
+     */
+    const paintBehind = (
+      bx0: number,
+      bx1: number,
+      by0: number,
+      by1: number,
+    ) => {
+      camera();
+      ctx.fillStyle = PAPER;
+      ctx.fillRect(bx0, by0, bx1 - bx0, by1 - by0);
+      let gi = 0;
+      while (gi < groundX.length && groundX[gi] + hx < bx0 - 4) gi++;
+      const g0 = Math.max(0, gi - 2);
+      if (farOn) {
+        ctx.fillStyle = farColour;
+        ctx.globalAlpha = farShow;
+        ctx.beginPath();
+        ctx.moveTo(groundX[g0] + hx, by1 + 4);
+        for (let i = g0; i < groundX.length; i++) {
+          const x = groundX[i] + hx;
+          ctx.lineTo(x, opts.horizon * H - farRise[i] * lift + breath + hy);
+          if (x > bx1 + 4) {
+            ctx.lineTo(x, by1 + 4);
+            break;
+          }
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = ink;
+      ctx.beginPath();
+      ctx.moveTo(groundX[g0], by1 + 4);
+      for (let i = g0; i < groundX.length; i++) {
+        const x = groundX[i];
+        ctx.lineTo(x, groundLine(x));
+        if (x > bx1 + 4) {
+          ctx.lineTo(x, by1 + 4);
+          break;
+        }
+      }
+      ctx.closePath();
+      ctx.fill();
+    };
+    if (dive < 0.999) {
+      drawInstruments(groundAt, knocked, knock, landAge, paintBehind);
+    }
     drawRecordPlayer(time, groundAt);
     // Off the home page the o sinks into the ground: early on the way in,
     // and only once the scene has nearly come home on the way back, so it
@@ -2270,6 +2454,84 @@ export const createForestRenderer = (
     }
     return table;
   })();
+  /**
+   * The orchestra over the land: each instrument at its foot on the
+   * ground, scaled by how far it has grown (in the opening, like a tree)
+   * and how far it stands on this page, bobbing with a landing nearby;
+   * ink outlines, then the cut-outs and rims in paper.
+   */
+  const drawInstruments = (
+    groundAt: (x: number) => number,
+    knocked: boolean,
+    knock: number,
+    landAge: number,
+    paintBehind: (x0: number, x1: number, y0: number, y1: number) => void,
+  ) => {
+    /** Paints the background into the current path, clipped: a true cut-out. */
+    const cutOut = (ox: number, oy: number, k: number, poly: number[]) => {
+      ctx.save();
+      ctx.clip();
+      let x0 = Number.POSITIVE_INFINITY;
+      let x1 = Number.NEGATIVE_INFINITY;
+      let y0 = Number.POSITIVE_INFINITY;
+      let y1 = Number.NEGATIVE_INFINITY;
+      for (let j = 0; j < poly.length; j += 2) {
+        x0 = Math.min(x0, poly[j]);
+        x1 = Math.max(x1, poly[j]);
+        y0 = Math.min(y0, poly[j + 1]);
+        y1 = Math.max(y1, poly[j + 1]);
+      }
+      paintBehind(ox + x0 * k, ox + x1 * k, oy + y0 * k, oy + y1 * k);
+      ctx.restore();
+    };
+    for (const it of instruments) {
+      const bob = knocked
+        ? LAND_BOB *
+          knock *
+          bump((it.x - landing.x) / landing.spread) *
+          Math.sin(TAU * 1.8 * landAge)
+        : 0;
+      const k = it.h * it.level * (1 + bob);
+      if (k <= 0.01) continue;
+      ctx.save();
+      // Set a little into the ground, not perched on it.
+      const ox = it.x;
+      const oy = groundAt(it.x) + INSTRUMENT_SINK * k;
+      ctx.translate(ox, oy);
+      ctx.scale(k, k);
+      ctx.fillStyle = ink;
+      for (const poly of it.shape.ink) {
+        ctx.beginPath();
+        traceSmooth(ctx, poly, poly.length / 2);
+        ctx.fill();
+      }
+      // The cut-outs show what is behind.
+      for (const poly of it.shape.paper) {
+        ctx.beginPath();
+        traceSmooth(ctx, poly, poly.length / 2);
+        cutOut(ox, oy, k, poly);
+      }
+      for (const [cx, cy, r, w] of it.shape.rings) {
+        // Never thinner than a pixel on screen.
+        const half = Math.max(w, 1 / k) / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + half, 0, TAU);
+        ctx.arc(cx, cy, Math.max(0, r - half), 0, TAU, true);
+        ctx.save();
+        ctx.clip('evenodd');
+        paintBehind(
+          ox + (cx - r - half) * k,
+          ox + (cx + r + half) * k,
+          oy + (cy - r - half) * k,
+          oy + (cy + r + half) * k,
+        );
+        ctx.restore();
+      }
+      ctx.restore();
+      ctx.fillStyle = ink;
+    }
+  };
+
   const drawRecordPlayer = (time: number, groundAt: (x: number) => number) => {
     const stump = stumpTree;
     if (!stump) return;

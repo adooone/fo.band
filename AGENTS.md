@@ -19,6 +19,13 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   (`logo-paths.ts` from Figma with the f's spine, flattened by `path-outline.ts`;
   `sprout.ts` grows the f along its spine), `forest.tsx` wires
   it to the shared loop; the knobs are `DEFAULT_OPTIONS` / `DEFAULT_MARK` in code,
+  `instruments.ts` the orchestra's instruments (cello, drums, guitar: bodies drawn in
+  Figma, stems that curl like the f, drums hanging from a crook) as ink outlines and
+  cut-outs in local units, drawn by the renderer over the land in their own layer
+  (a cut-out is a clip the background is painted back into, so a sound hole shows
+  the far hills through it, never a white disc glowing on them), since what hangs over air cannot be part of the skyline (everything under it
+  is ink); they stand in clearings the size of a tree, grow in the opening like the
+  trees, sink for music and about and go with the camera into art,
   `home-footer.tsx` the foot of the home page, `sky-title.tsx`
   a section's title, `home-shell.tsx` puts them together under every route.
   `nav/` holds the links and the phone's bottom nav. `src/lib/ticker.ts` is the one
@@ -74,7 +81,7 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   stages unwind first. On music the horizon stays: the f and the o sink first, the scene draws in
   once they are on their way, the trees go into the ground and come up as mushrooms
   in a wave from the middle (a two-stage morph, for forms with nothing in common),
-  tufts of grass stand along the floor (the only grass on the site), and the stump grows last with a touch of give. On
+  tufts of grass stand along the floor (at home the same tufts grow only in the instruments' clearings, taller), and the stump grows last with a touch of give. On
   about the forest sinks into the ground first (`ABOUT_HIDE_SECONDS`), then the
   camera draws back: the horizon is drawn up to a thin strip of sky
   (`ABOUT_HORIZON`), the left half a little ahead of the right, and the mark rides
