@@ -996,16 +996,26 @@ export const createForestRenderer = (
     const celloX = W - guitarX;
     // The keys under the f, as far left of the middle as the drums are right.
     const keysX = W - drumsX;
-    instruments = [celloX, drumsX, guitarX, keysX].map((x, i) => ({
-      ...made[i],
-      x,
-      delay:
-        0.05 +
-        (opts.morphStagger * Math.abs(x - W / 2)) / (W / 2) +
-        0.1 * rng(),
-      show: { from: 1, to: 1, start: -1e9, seconds: 1 },
-      level: 0,
-    }));
+    // On a phone there is room only for the two at the sides.
+    const phone = W < PHONE_WIDTH;
+    instruments = [celloX, drumsX, guitarX, keysX]
+      .map((x, i) => ({
+        ...made[i],
+        x,
+        delay:
+          0.05 +
+          (opts.morphStagger * Math.abs(x - W / 2)) / (W / 2) +
+          0.1 * rng(),
+        // Planted on whatever page the forest is on: up only where they stand.
+        show: {
+          from: instrumentsStand(page) ? 1 : 0,
+          to: instrumentsStand(page) ? 1 : 0,
+          start: -1e9,
+          seconds: 1,
+        },
+        level: 0,
+      }))
+      .filter((it) => !phone || it.kind === 'cello' || it.kind === 'guitar');
     const zones = instruments.map((it) => [
       it.x - it.shape.halfWidth * it.h - gapI,
       it.x + it.shape.halfWidth * it.h + gapI,
