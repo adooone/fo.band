@@ -1,3 +1,4 @@
+import { DEFAULT_FONTS, FONTS, type FontChoice } from './fonts';
 import {
   DEFAULT_MARK,
   DEFAULT_OPTIONS,
@@ -5,11 +6,15 @@ import {
   type MarkOptions,
 } from './forest-renderer';
 
-export type Tuning = ForestOptions & MarkOptions;
-export const DEFAULT_TUNING: Tuning = { ...DEFAULT_OPTIONS, ...DEFAULT_MARK };
+export type Tuning = ForestOptions & MarkOptions & FontChoice;
+export const DEFAULT_TUNING: Tuning = {
+  ...DEFAULT_OPTIONS,
+  ...DEFAULT_MARK,
+  ...DEFAULT_FONTS,
+};
 
 type Slider = {
-  key: keyof Tuning;
+  key: keyof (ForestOptions & MarkOptions);
   label: string;
   min: number;
   max: number;
@@ -19,64 +24,6 @@ type Slider = {
 type Group = { title: string; sliders: Slider[] };
 
 const GROUPS: Group[] = [
-  {
-    title: 'Mark',
-    sliders: [
-      {
-        key: 'logo',
-        label: 'size, share of height',
-        min: 0.15,
-        max: 0.6,
-        step: 0.01,
-      },
-      { key: 'oLift', label: 'o: up', min: -40, max: 200, step: 1 },
-      { key: 'oShift', label: 'o: right', min: -60, max: 160, step: 1 },
-      { key: 'oScale', label: 'o: size', min: 0.3, max: 1.3, step: 0.01 },
-      {
-        key: 'markWobble',
-        label: 'outline breathing',
-        min: 0,
-        max: 5,
-        step: 0.1,
-      },
-      { key: 'markBreath', label: 'breath, s', min: 2, max: 15, step: 0.5 },
-    ],
-  },
-  {
-    title: 'The f sprout',
-    sliders: [
-      { key: 'sproutSeconds', label: 'growth, s', min: 1, max: 12, step: 0.1 },
-      { key: 'coil', label: 'coil', min: 0, max: 5, step: 0.05 },
-    ],
-  },
-  {
-    title: 'Horizon',
-    sliders: [
-      {
-        key: 'horizon',
-        label: 'height, share of screen',
-        min: 0.5,
-        max: 0.9,
-        step: 0.01,
-      },
-      {
-        key: 'hill',
-        label: 'hill in the middle',
-        min: 0,
-        max: 0.2,
-        step: 0.005,
-      },
-      { key: 'waves', label: 'small waves', min: 0, max: 0.05, step: 0.001 },
-      {
-        key: 'waveCount',
-        label: 'wave count',
-        min: 0.5,
-        max: 8,
-        step: 0.1,
-      },
-      { key: 'breathSeconds', label: 'breath, s', min: 2, max: 20, step: 0.5 },
-    ],
-  },
   {
     title: 'Trees',
     sliders: [
@@ -110,50 +57,98 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: 'Grass',
+    title: 'Far hills',
     sliders: [
-      { key: 'grassAmp', label: 'amplitude', min: 0, max: 8, step: 0.1 },
       {
-        key: 'grassWavelength',
-        label: 'wavelength',
-        min: 6,
-        max: 200,
+        key: 'farTint',
+        label: 'ink in the tint',
+        min: 0,
+        max: 0.4,
+        step: 0.01,
+      },
+      {
+        key: 'farHeight',
+        label: 'height in the middle',
+        min: 0.03,
+        max: 0.2,
+        step: 0.005,
+      },
+      {
+        key: 'farDip',
+        label: 'higher at the edges',
+        min: 0,
+        max: 0.2,
+        step: 0.005,
+      },
+      { key: 'farTrees', label: 'tree size', min: 0, max: 2.5, step: 0.05 },
+    ],
+  },
+  {
+    title: 'Sky',
+    sliders: [
+      { key: 'clouds', label: 'clouds', min: 0, max: 10, step: 1 },
+      { key: 'farClouds', label: 'far clouds', min: 0, max: 12, step: 1 },
+      {
+        key: 'cloudTop',
+        label: 'clouds from, share of height',
+        min: 0,
+        max: 0.6,
+        step: 0.01,
+      },
+      {
+        key: 'cloudSize',
+        label: 'cloud size, share of width',
+        min: 0.02,
+        max: 0.2,
+        step: 0.005,
+      },
+      { key: 'cloudSpeed', label: 'cloud drift', min: 0, max: 40, step: 0.5 },
+      {
+        key: 'cloudTint',
+        label: 'ink in the clouds',
+        min: 0,
+        max: 0.4,
+        step: 0.01,
+      },
+      {
+        key: 'birdsEvery',
+        label: 'birds every, s',
+        min: 0,
+        max: 60,
         step: 1,
       },
-      { key: 'grassSpeed', label: 'speed', min: 0, max: 3, step: 0.05 },
-    ],
-  },
-  {
-    title: 'Wind',
-    sliders: [
-      { key: 'wind', label: 'strength', min: 0, max: 3, step: 0.05 },
+      { key: 'birdsCount', label: 'birds at most', min: 0, max: 7, step: 1 },
       {
-        key: 'gustEvery',
-        label: 'gust every, s',
-        min: 3,
-        max: 40,
-        step: 0.5,
+        key: 'birdsAbove',
+        label: 'birds over the horizon',
+        min: 0.02,
+        max: 0.6,
+        step: 0.01,
       },
+      { key: 'birdSize', label: 'bird size', min: 2, max: 16, step: 0.5 },
       {
-        key: 'gustSeconds',
-        label: 'gust lasts, s',
-        min: 1,
-        max: 12,
-        step: 0.1,
+        key: 'birdSpeed',
+        label: 'bird speed, widths per s',
+        min: 0.03,
+        max: 0.5,
+        step: 0.01,
       },
     ],
   },
   {
-    title: 'Intro',
+    title: 'Pencil',
     sliders: [
-      { key: 'morphSeconds', label: 'morph, s', min: 0.3, max: 6, step: 0.1 },
+      { key: 'pencilSeconds', label: 'run, s', min: 0.5, max: 10, step: 0.1 },
       {
-        key: 'morphStagger',
-        label: 'delay to the edges, s',
-        min: 0,
-        max: 4,
-        step: 0.1,
+        key: 'pencilTrail',
+        label: 'tail, share of line',
+        min: 0.01,
+        max: 0.6,
+        step: 0.01,
       },
+      { key: 'pencilWander', label: 'wander', min: 0, max: 25, step: 0.5 },
+      { key: 'pencilWave', label: 'wander wave', min: 40, max: 600, step: 10 },
+      { key: 'pencilWidth', label: 'width', min: 0.5, max: 6, step: 0.1 },
     ],
   },
 ];
@@ -224,7 +219,7 @@ export const Tuner = ({
   open,
   onToggle,
 }: TunerProps) => {
-  const set = (key: keyof Tuning, v: number) => {
+  const set = <K extends keyof Tuning>(key: K, v: Tuning[K]) => {
     const next = { ...value, [key]: v };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(diff(next)));
@@ -256,6 +251,34 @@ export const Tuner = ({
       </button>
       <div className="flex w-full flex-col bg-black">
         <div className="flex-1 overflow-y-auto px-3 py-3">
+          <section className="mb-4">
+            <h3 className="mb-1.5 text-[10px] uppercase tracking-[0.2em] opacity-50">
+              Fonts
+            </h3>
+            {(
+              [
+                ['fontTitles', 'titles'],
+                ['fontText', 'everything else'],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="mb-1.5 block">
+                <span className="block">{label}</span>
+                <select
+                  value={value[key]}
+                  onChange={(e) =>
+                    set(key, e.target.value as Tuning[typeof key])
+                  }
+                  className="block w-full rounded border border-white/30 bg-black px-1 py-0.5 text-white"
+                >
+                  {FONTS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </section>
           {GROUPS.map((group) => (
             <section key={group.title} className="mb-4">
               <h3 className="mb-1.5 text-[10px] uppercase tracking-[0.2em] opacity-50">

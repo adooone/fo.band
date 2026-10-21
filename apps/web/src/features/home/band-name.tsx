@@ -3,9 +3,9 @@ import type { PageId } from './forest-renderer';
 const NAME = 'Forest Orchestra';
 
 /**
- * The band's name at the top of the home page, centred, on one line,
- * in a brush hand (Caveat Brush), bolder than the serif of the titles. It fades out inside a
- * section, where that corner holds the section's own title instead.
+ * The band's name at the top of the home page, centred, on one line, in
+ * the brush hand, at the same height and size as the music page's title so
+ * the two read as one voice. It fades out inside a section.
  */
 export const BandName = ({ page }: { page: PageId }) => {
   const home = page === 'home';
@@ -13,7 +13,7 @@ export const BandName = ({ page }: { page: PageId }) => {
     <div
       className="pointer-events-none absolute inset-x-0 text-center text-ink transition-opacity duration-500"
       style={{
-        top: 'max(calc(48 * var(--k)), calc(env(safe-area-inset-top) + 16px))',
+        top: 'calc(96 * var(--k))',
         opacity: home ? 1 : 0,
         transitionDelay: home ? '0.5s' : '0s',
       }}
@@ -22,8 +22,7 @@ export const BandName = ({ page }: { page: PageId }) => {
       <span
         className="block whitespace-nowrap font-brush"
         style={{
-          fontSize: 'clamp(20px, calc(34 * var(--k)), 42px)',
-          lineHeight: 1,
+          fontSize: 'clamp(30px, calc(60 * var(--k)), 76px)',
           letterSpacing: '0.01em',
         }}
       >

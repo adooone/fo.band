@@ -29,7 +29,8 @@ export const SkyTitle = ({ title, page }: SkyTitleProps) => {
             ? { left: 'calc(56 * var(--kc))', top: 'calc(96 * var(--k))' }
             : { top: 'calc(96 * var(--k))' }),
         opacity: title ? 1 : 0,
-        transitionDelay: title ? '0.5s' : '0s',
+        // On finds the title waits for the branch to reach it.
+        transitionDelay: title ? (field ? '1.4s' : '0.5s') : '0s',
       }}
       aria-hidden="true"
     >

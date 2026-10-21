@@ -39,3 +39,6 @@ papercamp/pr-reviews.json
 papercamp/pr-map.json
 papercamp/night.json
 papercamp/run-order.md
+
+# KTF Metro: its licence forbids redistributing the font files, so they stay local
+apps/web/public/fonts/KTFMetro-*

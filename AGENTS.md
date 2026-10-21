@@ -46,16 +46,31 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   no per-point noise at all (a pencil wobble was tried and dropped: it cost most of the
   frame and read as blur). `forest.tsx` lowers the canvas's pixel density when frames
   run slow and restores it when they run fast; the picture itself never changes.
-- Page changes are morphs in place, never slides or camera flights: the skyline is one
+- Page changes are morphs in place, never slides or camera flights, and each one is a
+  choreography of stages with its own delays (`setPage`): on music the f and the o
+  sink first, the scene draws in once they are on their way, the trees go into the
+  ground and come up as mushrooms in a wave from the middle (a two-stage morph, for
+  forms with nothing in common), and the stump grows last with a touch of give; about
+  is only the camera drawing back (`ABOUT_ZOOM`), nothing in the forest changes, the
+  middle of the ground lifting to the strip of sky, the far hills drawing back less
+  (depth) and a few birds taking off from the trees by the clearing, drawn in screen
+  space. On the home page small tinted clouds drift along the top of the sky and a
+  few birds cross it now and then (`Sky` knobs in the tuner); both fade as a section
+  takes over. The pencil keeps its screen width whatever the camera does, and stays
+  away on about and finds. Every change stirs the
+  grass and sends a gust the way of travel. The skyline is one
   polyline, and every tree has a form per page with the same point count. The f of
   the mark is a tree in that line too (kind `mark`, finer point count): its form on
   the home and about pages is the sprout's outline cut at the ground, written every
   frame; on music it sinks into the ground (a flat form) and the stump grows out of
-  the ground beside it as a tree of its own; on finds every tree and the f sink first,
-  then the whole skyline flows into a tree (`trunkOutline`): each point goes to the
-  place as far along the trunk's outline as it was along the land, so the line lifts
-  as one into the trunk on the right and its long branch with twigs and leaves, with
-  no loops left to tangle into gaps. Only the o is drawn on its own.
+  the ground beside it as a tree of its own; on finds the change runs in stages: every
+  tree and the f sink first, then the land pours from the left into a trunk column
+  (`trunkOutline`; each point goes to the place as far along the trunk's edge as it
+  was along the land, no loops left to tangle into gaps), then a branch grows out of
+  the trunk along a skeleton (`branch.ts`: shoots that lengthen and thicken, children
+  forking as the parent reaches them, leaves unfurling last). The branch joins the
+  land's path and is filled with it, so there is never a seam. Only the o is drawn on
+  its own.
 
 ## Verify before you finish
 

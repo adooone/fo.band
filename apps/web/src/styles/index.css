@@ -3,6 +3,71 @@
 /* Caveat Brush by Impallari Type (SIL Open Font License, see
    fonts/CaveatBrush-OFL.txt): the brush hand of the name, titles and paths. */
 @font-face {
+  font-family: "Mansalva";
+  src: url("/fonts/Mansalva-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Eagle Lake";
+  src: url("/fonts/EagleLake-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Condiment";
+  src: url("/fonts/Condiment-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caesar Dressing";
+  src: url("/fonts/CaesarDressing-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+/* KTF Metro by Kyiv Type Foundry: local only, for trying in the tuner; its licence
+   forbids redistribution, so the files are git-ignored and never the default. */
+@font-face {
+  font-family: "KTF Metro Roman";
+  src: url("/fonts/KTFMetro-Roman.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "KTF Metro Sport";
+  src: url("/fonts/KTFMetro-Sport.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "KTF Metro Xarkiv";
+  src: url("/fonts/KTFMetro-Xarkiv.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "KTF Metro Botanical";
+  src: url("/fonts/KTFMetro-Botanical.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "KTF Metro Blueline";
+  src: url("/fonts/KTFMetro-Blueline.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
   font-family: "Caveat Brush";
   src: url("/fonts/CaveatBrush-Regular.woff") format("woff");
   font-weight: 400;
@@ -68,7 +133,9 @@
     "Luminari", "KyivType Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Luminari", "KyivType Serif", Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, monospace;
-  --font-brush: "Caveat Brush", "Luminari", cursive;
+  /* The titles' face and the face of everything else; the tuner can swap both. */
+  --font-brush: "Caesar Dressing", "Mansalva", "Caveat Brush", cursive;
+  --font-text: "Mansalva", "Caveat Brush", "Luminari", cursive;
 
   @keyframes fade-in {
     from {

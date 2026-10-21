@@ -1,9 +1,10 @@
 import { Outlet, useRouterState } from '@tanstack/react-router';
-import { useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useMemo, useRef, useState } from 'react';
 import { EdgeNav, pageOf, sectionOf, useDirections } from '@/features/nav';
 import { BandName } from './band-name';
+import { fontFamily } from './fonts';
 import { Forest } from './forest';
-import type { ForestLayout, ForestRenderer } from './forest-renderer';
+import type { ForestRenderer } from './forest-renderer';
 import { SkyTitle } from './sky-title';
 import {
   loadTunerOpen,
@@ -29,7 +30,6 @@ export const HomeShell = () => {
   const page = pageOf(pathname);
   useDirections();
   const forest = useRef<ForestRenderer | null>(null);
-  const [layout, setLayout] = useState<ForestLayout | null>(null);
   const [tuning, setTuning] = useState<Tuning>(loadTuning);
   const tuner = tuningWanted();
   const [tunerOpen, setTunerOpen] = useState(() => tuner && loadTunerOpen());
@@ -62,16 +62,18 @@ export const HomeShell = () => {
       tuning.coil,
     ],
   );
-  // Hovering a way out sends a breeze from that side of the screen.
-  const breeze = (edge: string) => {
-    forest.current?.gust(edge === 'left' ? 1 : -1);
-  };
 
   return (
     <>
       <main
         className="home relative h-dvh overflow-hidden bg-paper text-ink"
-        style={{ width: pageWidth }}
+        style={
+          {
+            width: pageWidth,
+            '--font-brush': fontFamily(tuning.fontTitles),
+            '--font-text': fontFamily(tuning.fontText),
+          } as CSSProperties
+        }
       >
         <Forest
           className="absolute inset-0 block h-full w-full"
@@ -79,12 +81,11 @@ export const HomeShell = () => {
           mark={mark}
           page={page}
           apiRef={forest}
-          onLayout={setLayout}
         />
         <BandName page={page} />
         <SkyTitle title={current?.label ?? null} page={page} />
         <Outlet />
-        <EdgeNav onHover={breeze} ground={layout} />
+        <EdgeNav />
       </main>
       {tuner && (
         <Tuner

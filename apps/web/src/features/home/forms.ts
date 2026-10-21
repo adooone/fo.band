@@ -1,3 +1,4 @@
+import { createNoise2D } from 'simplex-noise';
 import { mulberry32 } from './rng';
 
 /**
@@ -78,44 +79,124 @@ export const leafShape = (
   return out;
 };
 
-export type MushroomKind = 'bolete' | 'parasol' | 'bell';
-const MUSHROOM_KINDS: MushroomKind[] = ['bolete', 'parasol', 'bell'];
+export type MushroomKind = 'bolete' | 'parasol' | 'bell' | 'agaric' | 'mycena';
 
 /**
- * A mushroom for the forest floor around the record player: a stem that
- * flares a little at the ground, the cap's underside reaching out to its
- * rim, and the dome over the top. Boletes are stout and round, parasols
- * thin with a wide flat cap, bells have a tall pointed cap.
+ * A mushroom for the forest floor around the record player, one tall: a
+ * stem that flares a little at the ground, the cap's underside reaching
+ * out to its rim, and the dome over the top. Boletes are stout and round,
+ * parasols thin with a wide flat cap and a ring on the stem, bells have a
+ * tall pointed cap, agarics a round cap on a stem with a skirt, mycenas
+ * are tiny bells on long thin stems that grow in bunches. The outline is
+ * open, from the left foot over the top to the right foot, `dx` across.
  */
-export const mushroomShape = (seed: number, height = 0.5): number[] => {
+export const mushroomShape = (
+  seed: number,
+  height = 0.5,
+  kind?: MushroomKind,
+  dx = 0,
+): number[] => {
   const rng = mulberry32(Math.floor(seed * 7919) + 23);
-  const kind = MUSHROOM_KINDS[Math.floor(rng() * MUSHROOM_KINDS.length)];
-  const lean = (rng() - 0.5) * 0.08 * height;
+  const pick: MushroomKind[] = ['bolete', 'parasol', 'bell', 'agaric'];
+  const k = kind ?? pick[Math.floor(rng() * pick.length)];
+  const lean = (rng() - 0.5) * 0.1 * height;
   const shape = {
-    bolete: { stem: 0.5, stemW: 0.13, capW: 0.36, dome: 0.8 },
-    parasol: { stem: 0.68, stemW: 0.055, capW: 0.42, dome: 0.45 },
-    bell: { stem: 0.5, stemW: 0.07, capW: 0.26, dome: 1.7 },
-  }[kind];
+    bolete: { stem: 0.5, stemW: 0.13, capW: 0.36, dome: 0.8, skirt: 0 },
+    parasol: { stem: 0.68, stemW: 0.05, capW: 0.42, dome: 0.45, skirt: 0.6 },
+    bell: { stem: 0.5, stemW: 0.07, capW: 0.26, dome: 1.7, skirt: 0 },
+    agaric: { stem: 0.55, stemW: 0.09, capW: 0.36, dome: 1.0, skirt: 0.72 },
+    mycena: { stem: 0.74, stemW: 0.035, capW: 0.16, dome: 1.4, skirt: 0 },
+  }[k];
   const stemH = shape.stem * height;
   const capH = height - stemH;
   const sw = shape.stemW * height;
   const cw = shape.capW * height * (0.9 + 0.2 * rng());
-  const out: number[] = [-sw * 1.25, 0, -sw, -stemH * 0.35];
-  out.push(-sw * 0.85 + lean, -stemH * 0.95);
+  const out: number[] = [];
+  const push = (x: number, y: number) => out.push(x + dx, y);
+  const skirtY = shape.skirt * stemH;
+  push(-sw * 1.25, 0);
+  push(-sw, -stemH * 0.35);
+  if (shape.skirt > 0) {
+    // The skirt: a little collar hanging from the stem.
+    push(-sw * 0.95, -skirtY + 0.05 * height);
+    push(-sw * 2.1 + lean * 0.5, -skirtY + 0.02 * height);
+    push(-sw * 1.6 + lean * 0.5, -skirtY - 0.03 * height);
+    push(-sw * 0.9 + lean * 0.6, -skirtY - 0.04 * height);
+  }
+  push(-sw * 0.85 + lean, -stemH * 0.95);
   // The underside out to the rim, the rim hanging a touch.
-  out.push(-cw * 0.55 + lean, -stemH - 0.02 * height);
-  out.push(-cw + lean, -stemH + 0.015 * height);
+  push(-cw * 0.55 + lean, -stemH - 0.02 * height);
+  push(-cw + lean, -stemH + 0.015 * height);
   const n = 22;
   for (let i = 1; i < n; i++) {
     const a = Math.PI - (Math.PI * i) / n;
-    out.push(
-      cw * Math.cos(a) + lean,
-      -stemH - capH * Math.sin(a) ** shape.dome,
-    );
+    push(cw * Math.cos(a) + lean, -stemH - capH * Math.sin(a) ** shape.dome);
   }
-  out.push(cw + lean, -stemH + 0.015 * height);
-  out.push(cw * 0.55 + lean, -stemH - 0.02 * height);
-  out.push(sw * 0.85 + lean, -stemH * 0.95, sw, -stemH * 0.35, sw * 1.25, 0);
+  push(cw + lean, -stemH + 0.015 * height);
+  push(cw * 0.55 + lean, -stemH - 0.02 * height);
+  push(sw * 0.85 + lean, -stemH * 0.95);
+  if (shape.skirt > 0) {
+    push(sw * 0.9 + lean * 0.6, -skirtY - 0.04 * height);
+    push(sw * 1.6 + lean * 0.5, -skirtY - 0.03 * height);
+    push(sw * 2.1 + lean * 0.5, -skirtY + 0.02 * height);
+    push(sw * 0.95, -skirtY + 0.05 * height);
+  }
+  push(sw, -stemH * 0.35);
+  push(sw * 1.25, 0);
+  return out;
+};
+
+/**
+ * What grows where a tree stood on the music page: a mushroom, a pair, or
+ * a bunch of mycenas on thin stems, side by side without overlapping, the
+ * whole group no wider than `width` (local units of the tree, 1 = its
+ * height) and set a little off its centre. One open outline from the left
+ * foot to the right, the ground between the mushrooms.
+ */
+export const mushroomGroup = (seed: number, width: number): number[] => {
+  const rng = mulberry32(Math.floor(seed * 7919) + 29);
+  const roll = rng();
+  type Member = { kind?: MushroomKind; h: number };
+  let members: Member[];
+  if (roll < 0.34) {
+    members = [{ h: 0.55 + 0.25 * rng() }];
+  } else if (roll < 0.62) {
+    const big = 0.55 + 0.2 * rng();
+    members = [{ h: big }, { h: big * (0.45 + 0.25 * rng()) }];
+    if (rng() < 0.5) members.reverse();
+  } else if (roll < 0.86) {
+    const count = 3 + Math.floor(rng() * 3);
+    members = [];
+    for (let i = 0; i < count; i++) {
+      members.push({ kind: 'mycena', h: 0.3 + 0.22 * rng() });
+    }
+  } else {
+    members = [
+      { kind: 'agaric', h: 0.65 + 0.12 * rng() },
+      { kind: 'mycena', h: 0.26 + 0.1 * rng() },
+      { kind: 'mycena', h: 0.3 + 0.1 * rng() },
+    ];
+  }
+  // Cap widths set the spacing: caps nearly touch, never overlap.
+  const capW = (m: Member) =>
+    (m.kind === 'mycena' ? 0.16 : m.kind === 'agaric' ? 0.36 : 0.4) * m.h;
+  const xs: number[] = [];
+  let x = 0;
+  members.forEach((m, i) => {
+    if (i > 0) x += (capW(members[i - 1]) + capW(m)) * (0.55 + 0.35 * rng());
+    xs.push(x);
+  });
+  const span = x + capW(members[0]) + capW(members[members.length - 1]);
+  const fit = Math.min(1, (0.95 * width) / span);
+  const shift = (rng() - 0.5) * Math.max(0, width - span * fit) * 0.8;
+  const centre = x / 2;
+  const out: number[] = [];
+  members.forEach((m, i) => {
+    const dx = (xs[i] - centre) * fit + shift;
+    const shape = mushroomShape(seed + i * 17, m.h * fit, m.kind, dx);
+    if (i > 0) out.push((out[out.length - 2] + shape[0]) / 2, 0);
+    out.push(...shape);
+  });
   return out;
 };
 
@@ -179,165 +260,48 @@ export const flatShape = (width: number): number[] => [
 ];
 
 /**
- * The tree the whole skyline turns into on the finds page, in screen px
- * (y down): a trunk filling the strip on the right from below the bottom
- * edge to above the top, and near the top one long branch reaching left
- * toward the title, wavering and tapering like a real limb, with three
- * twigs forking off it and leaves on the twigs, on the branch and at its
- * tip. One open path from the trunk's foot at the bottom left, up its left
- * edge, out under the branch, round every twig and leaf on the way back,
- * over the top and down the right edge, so the land can flow into it.
+ * The trunk the whole skyline turns into on the finds page, in screen px
+ * (y down): a column filling the strip on the right from below the bottom
+ * edge to above the top, its left edge rough with bark and swelling into a
+ * collar where the branch leaves it (`y0` down from the top). One open path
+ * from the foot at the bottom left, up the left edge, over the top and down
+ * the right edge, so the land can flow into it. The branch itself grows
+ * separately (branch.ts).
  */
+/** Points along the trunk's left edge, from its foot to its top. */
+export const TRUNK_EDGE_POINTS = 80;
 export const trunkOutline = (
   W: number,
   H: number,
   /** The trunk's width, of the screen width. */
   strip: number,
+  y0: number,
   seed: number,
 ): number[] => {
-  const rng = mulberry32(Math.floor(seed * 7919) + 41);
+  const noise = createNoise2D(mulberry32(Math.floor(seed * 7919) + 41));
   const out: number[] = [];
-  const push = (x: number, y: number) => out.push(x, y);
   const left = W * (1 - strip);
   const right = 1.06 * W;
   const bottom = 1.18 * H;
   const top = -0.06 * H;
-  const y0 = 0.17 * H;
-  const reach = 0.6 * W;
-  const lift = 0.05 * H;
-  // The branch's centreline, left from the trunk, rising and wavering.
-  const centre = (t: number) => ({
-    x: left - reach * t,
-    y:
-      y0 -
-      lift * t +
-      0.028 * reach * Math.sin(2.6 * t + 0.3) -
-      0.012 * reach * Math.sin(6.1 * t + 1.2),
-  });
-  const unit = (x: number, y: number) => {
-    const l = Math.hypot(x, y) || 1;
-    return { x: x / l, y: y / l };
+  // Bark in two octaves, and the collar: a bulge toward the branch.
+  const collar = 0.024 * W;
+  const edge = (y: number) => {
+    const bark =
+      0.008 * W * noise(y / (0.11 * H), 0.3) +
+      0.0035 * W * noise(y / (0.035 * H), 2.7);
+    const c = (y - (y0 + 0.012 * H)) / (2 * collar);
+    const bulge = c <= -1 || c >= 1 ? 0 : 0.5 + 0.5 * Math.cos(Math.PI * c);
+    return left + bark - collar * 0.35 * bulge;
   };
-  /** Direction along the branch toward its tip. */
-  const dir = (t: number) => {
-    const a = centre(Math.max(0, t - 0.01));
-    const b = centre(Math.min(1, t + 0.01));
-    return unit(b.x - a.x, b.y - a.y);
-  };
-  /** Up from the branch (the normal on the sky side). */
-  const up = (t: number) => {
-    const d = dir(t);
-    return { x: -d.y, y: d.x };
-  };
-  const hw = (t: number) => 0.034 * reach * (1 - 0.82 * t) + 1.2;
-  const bark = (y: number) => 0.012 * W * Math.sin(y / (0.09 * H) + 1);
-
-  // Up the trunk's left edge to the branch.
-  const underAtTrunk = y0 + hw(0);
-  for (let i = 0; i <= 10; i++) {
-    const y = bottom + (underAtTrunk - bottom) * (i / 10);
-    push(left + bark(y), y);
+  const n = TRUNK_EDGE_POINTS;
+  for (let i = 0; i <= n; i++) {
+    const y = bottom + (top - bottom) * (i / n);
+    out.push(edge(y), y);
   }
-  // Out under the branch.
-  const n = 44;
-  for (let i = 1; i <= n; i++) {
-    const t = i / n;
-    const c = centre(t);
-    const u = up(t);
-    push(c.x - u.x * hw(t), c.y - u.y * hw(t));
-  }
-  /**
-   * A leaf standing at `base`, its stalk along `d` (unit) and its blade
-   * `h` tall, walked from its `-r` side to its `+r` side, `r` being `d`
-   * turned a quarter clockwise on screen.
-   */
-  const leafAt = (
-    base: { x: number; y: number },
-    d: { x: number; y: number },
-    h: number,
-    k: number,
-  ) => {
-    const r = { x: -d.y, y: d.x };
-    const leaf = leafShape(seed + k * 13, 1);
-    for (let j = 0; j < leaf.length; j += 2) {
-      const lx = leaf[j] * h;
-      const ly = leaf[j + 1] * h;
-      push(base.x + lx * r.x - ly * d.x, base.y + lx * r.y - ly * d.y);
-    }
-  };
-  // The tip: a leaf pointing on along the branch.
-  const tip = centre(1);
-  leafAt(tip, dir(1), 0.06 * H, 9);
-  // Back along the top edge: twigs forking up and leaves on the way.
-  type Mark = { t: number; twig: boolean };
-  const marks: Mark[] = [
-    { t: 0.86, twig: false },
-    { t: 0.74, twig: true },
-    { t: 0.6, twig: false },
-    { t: 0.47, twig: true },
-    { t: 0.33, twig: false },
-    { t: 0.2, twig: true },
-  ];
-  let next = 0;
-  const steps = 44;
-  let twigs = 0;
-  for (let i = steps; i >= 0; i--) {
-    const t = i / steps;
-    while (next < marks.length && marks[next].t >= t) {
-      const m = marks[next];
-      const c = centre(m.t);
-      const u = up(m.t);
-      const d = dir(m.t);
-      const base = { x: c.x + u.x * hw(m.t), y: c.y + u.y * hw(m.t) };
-      if (m.twig) {
-        // A twig: a thinner limb forking off toward the sky, bending a
-        // touch, a leaf at its end.
-        const a = (52 + 14 * twigs + 10 * rng()) * (Math.PI / 180);
-        const td = unit(
-          d.x * Math.cos(a) + u.x * Math.sin(a),
-          d.y * Math.cos(a) + u.y * Math.sin(a),
-        );
-        const tr = { x: -td.y, y: td.x };
-        const len = reach * (0.2 - 0.04 * twigs);
-        const w0 = 0.5 * hw(m.t);
-        const at = (sh: number, side: number) => {
-          const bend = -0.12 * len * sh * sh;
-          const w = w0 * (1 - 0.8 * sh) + 0.8;
-          return {
-            x: base.x + td.x * len * sh + tr.x * (bend + side * w),
-            y: base.y + td.y * len * sh + tr.y * (bend + side * w),
-          };
-        };
-        for (let q = 0; q <= 8; q++) {
-          const p = at(q / 8, -1);
-          push(p.x, p.y);
-        }
-        leafAt(at(1, 0), td, 0.055 * H, next);
-        for (let q = 8; q >= 0; q--) {
-          const p = at(q / 8, 1);
-          push(p.x, p.y);
-        }
-        twigs++;
-      } else {
-        // A leaf on the branch itself, leaning toward the tip.
-        const ld = unit(u.x + 0.35 * d.x, u.y + 0.35 * d.y);
-        leafAt(base, ld, 0.07 * H, next);
-      }
-      next++;
-    }
-    const c = centre(t);
-    const u = up(t);
-    push(c.x + u.x * hw(t), c.y + u.y * hw(t));
-  }
-  // Up the trunk to the top, over, and down the right edge.
-  const overAtTrunk = y0 - hw(0);
-  for (let i = 1; i <= 6; i++) {
-    const y = overAtTrunk + (top - overAtTrunk) * (i / 6);
-    push(left + bark(y), y);
-  }
-  push((left + right) / 2, top);
-  push(right, top);
-  push(right, (top + bottom) / 2);
-  push(right, bottom);
+  out.push((left + right) / 2, top);
+  out.push(right, top);
+  out.push(right, (top + bottom) / 2);
+  out.push(right, bottom);
   return out;
 };
