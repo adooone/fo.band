@@ -19,7 +19,7 @@ const renderAt = async (path: string) => {
 const PAGES = [
   ['Music', '/music'],
   ['About', '/about'],
-  ['Finds', '/finds'],
+  ['Art', '/art'],
 ] as const;
 
 describe('HomeShell', () => {

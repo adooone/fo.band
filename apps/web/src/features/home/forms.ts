@@ -79,14 +79,13 @@ export const leafShape = (
   return out;
 };
 
-export type MushroomKind = 'bolete' | 'parasol' | 'bell' | 'agaric' | 'mycena';
+export type MushroomKind = 'bolete' | 'porcini' | 'bell' | 'agaric' | 'mycena';
 
 /**
  * A mushroom for the forest floor around the record player, one tall: a
  * stem that flares a little at the ground, the cap's underside reaching
  * out to its rim, and the dome over the top. Boletes are stout and round,
- * parasols thin with a wide flat cap and a ring on the stem, bells have a
- * tall pointed cap, agarics a round cap on a stem with a skirt, mycenas
+ * porcini sit a thick round cap on a fat stem that bulges low down, bells have a tall pointed cap, agarics a round cap on a stem with a skirt, mycenas
  * are tiny bells on long thin stems that grow in bunches. The outline is
  * open, from the left foot over the top to the right foot, `dx` across.
  */
@@ -97,12 +96,12 @@ export const mushroomShape = (
   dx = 0,
 ): number[] => {
   const rng = mulberry32(Math.floor(seed * 7919) + 23);
-  const pick: MushroomKind[] = ['bolete', 'parasol', 'bell', 'agaric'];
+  const pick: MushroomKind[] = ['bolete', 'porcini', 'bell', 'agaric'];
   const k = kind ?? pick[Math.floor(rng() * pick.length)];
   const lean = (rng() - 0.5) * 0.1 * height;
   const shape = {
     bolete: { stem: 0.5, stemW: 0.13, capW: 0.36, dome: 0.8, skirt: 0 },
-    parasol: { stem: 0.68, stemW: 0.05, capW: 0.42, dome: 0.45, skirt: 0.6 },
+    porcini: { stem: 0.56, stemW: 0.14, capW: 0.38, dome: 0.65, skirt: 0 },
     bell: { stem: 0.5, stemW: 0.07, capW: 0.26, dome: 1.7, skirt: 0 },
     agaric: { stem: 0.55, stemW: 0.09, capW: 0.36, dome: 1.0, skirt: 0.72 },
     mycena: { stem: 0.74, stemW: 0.035, capW: 0.16, dome: 1.4, skirt: 0 },
@@ -114,8 +113,19 @@ export const mushroomShape = (
   const out: number[] = [];
   const push = (x: number, y: number) => out.push(x + dx, y);
   const skirtY = shape.skirt * stemH;
-  push(-sw * 1.25, 0);
-  push(-sw, -stemH * 0.35);
+  // The stem's left side from the foot up, as (height, half-width) shares;
+  // a porcini's swells into a round belly low down.
+  const stem: [number, number][] =
+    k === 'porcini'
+      ? Array.from({ length: 7 }, (_, i) => {
+          const y = (i / 7) * 0.9;
+          return [y, 0.8 + 0.6 * Math.exp(-(((y - 0.3) / 0.35) ** 2))];
+        })
+      : [
+          [0, 1.25],
+          [0.35, 1],
+        ];
+  for (const [y, w] of stem) push(-sw * w, -stemH * y);
   if (shape.skirt > 0) {
     // The skirt: a little collar hanging from the stem.
     push(-sw * 0.95, -skirtY + 0.05 * height);
@@ -141,8 +151,7 @@ export const mushroomShape = (
     push(sw * 2.1 + lean * 0.5, -skirtY + 0.02 * height);
     push(sw * 0.95, -skirtY + 0.05 * height);
   }
-  push(sw, -stemH * 0.35);
-  push(sw * 1.25, 0);
+  for (const [y, w] of stem.toReversed()) push(sw * w, -stemH * y);
   return out;
 };
 
@@ -262,11 +271,9 @@ export const flatShape = (width: number): number[] => [
 /**
  * The trunk the whole skyline turns into on the finds page, in screen px
  * (y down): a column filling the strip on the right from below the bottom
- * edge to above the top, its left edge rough with bark and swelling into a
- * collar where the branch leaves it (`y0` down from the top). One open path
+ * edge to above the top, its left edge rough with bark. One open path
  * from the foot at the bottom left, up the left edge, over the top and down
- * the right edge, so the land can flow into it. The branch itself grows
- * separately (branch.ts).
+ * the right edge.
  */
 /** Points along the trunk's left edge, from its foot to its top. */
 export const TRUNK_EDGE_POINTS = 80;
@@ -275,7 +282,6 @@ export const trunkOutline = (
   H: number,
   /** The trunk's width, of the screen width. */
   strip: number,
-  y0: number,
   seed: number,
 ): number[] => {
   const noise = createNoise2D(mulberry32(Math.floor(seed * 7919) + 41));
@@ -284,15 +290,12 @@ export const trunkOutline = (
   const right = 1.06 * W;
   const bottom = 1.18 * H;
   const top = -0.06 * H;
-  // Bark in two octaves, and the collar: a bulge toward the branch.
-  const collar = 0.024 * W;
+  // Bark in two octaves.
   const edge = (y: number) => {
     const bark =
       0.008 * W * noise(y / (0.11 * H), 0.3) +
       0.0035 * W * noise(y / (0.035 * H), 2.7);
-    const c = (y - (y0 + 0.012 * H)) / (2 * collar);
-    const bulge = c <= -1 || c >= 1 ? 0 : 0.5 + 0.5 * Math.cos(Math.PI * c);
-    return left + bark - collar * 0.35 * bulge;
+    return left + bark;
   };
   const n = TRUNK_EDGE_POINTS;
   for (let i = 0; i <= n; i++) {

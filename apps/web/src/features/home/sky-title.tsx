@@ -6,31 +6,37 @@ type SkyTitleProps = {
 };
 
 /**
- * A section's title, in the brush hand: high in the sky on the music page; on the about page
- * in the thin strip of sky, on the left of the mark; on the finds page at
- * the top of the white field, where the trunk's branch reaches.
+ * A section's title, in the brush hand: high up in the middle on the music
+ * and finds pages; on the about page in the thin strip of sky, on the left
+ * of the mark.
  */
+/** How long a section's title waits for its page's change to play out, seconds. */
+export const TITLE_DELAY: Record<PageId, number> = {
+  home: 0.5,
+  music: 0.5,
+  about: 1,
+  finds: 1.8,
+};
+
 export const SkyTitle = ({ title, page }: SkyTitleProps) => {
   const strip = page === 'about';
-  const field = page === 'finds';
   return (
     <div
       className={`pointer-events-none absolute flex text-ink transition-opacity duration-500 ${
-        strip || field ? '' : 'inset-x-0 justify-center text-center'
+        strip ? '' : 'inset-x-0 justify-center text-center'
       }`}
       style={{
         ...(strip
           ? {
               left: 'calc(40 * var(--kc))',
-              top: 'max(8.5%, calc(env(safe-area-inset-top) + 12px))',
+              top: 'max(6%, calc(env(safe-area-inset-top) + 12px))',
               transform: 'translateY(-50%)',
             }
-          : field
-            ? { left: 'calc(56 * var(--kc))', top: 'calc(96 * var(--k))' }
-            : { top: 'calc(96 * var(--k))' }),
+          : { top: 'calc(96 * var(--k))' }),
         opacity: title ? 1 : 0,
-        // On finds the title waits for the branch to reach it.
-        transitionDelay: title ? (field ? '1.4s' : '0.5s') : '0s',
+        // It waits for its page: on about for the horizon to be drawn up,
+        // on art for the trunk to clear the field.
+        transitionDelay: title ? `${TITLE_DELAY[page]}s` : '0s',
       }}
       aria-hidden="true"
     >

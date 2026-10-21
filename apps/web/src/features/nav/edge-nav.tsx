@@ -1,5 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { TITLE_DELAY } from '@/features/home/sky-title';
 import { type Edge, HOME_LABEL, SECTIONS, sectionOf } from './links';
 
 type EdgeLinkProps = {
@@ -10,6 +11,8 @@ type EdgeLinkProps = {
   tone: 'ink' | 'paper';
   /** Standing in the row under the band name, not on an edge of the screen. */
   row?: boolean;
+  /** Seconds before it fades in. */
+  delay?: number;
   onHover?: (hot: boolean) => void;
 };
 
@@ -46,7 +49,7 @@ const PLACE: Record<Edge, CSSProperties> = {
   // Only the about page leads up: on the right of its thin strip of sky.
   top: {
     right: 'calc(36 * var(--kc))',
-    top: 'max(8.5%, calc(env(safe-area-inset-top) + 12px))',
+    top: 'max(6%, calc(env(safe-area-inset-top) + 12px))',
     transform: 'translateY(-50%)',
   },
 };
@@ -68,14 +71,23 @@ const ARROW: Record<Edge, string> = {
  * A way out: the word, and its arrow drawn only while the pointer or the
  * keyboard is on it.
  */
-const EdgeLink = ({ to, label, edge, tone, row, onHover }: EdgeLinkProps) => (
+const EdgeLink = ({
+  to,
+  label,
+  edge,
+  tone,
+  row,
+  delay = 0.55,
+  onHover,
+}: EdgeLinkProps) => (
   <Link
     to={to}
-    className={`group block whitespace-nowrap font-text outline-none [animation:fade-in_0.5s_ease-out_0.55s_both] ${
+    className={`group block whitespace-nowrap font-text outline-none [animation:fade-in_0.5s_ease-out_both] ${
       tone === 'ink' ? 'text-ink' : 'text-paper'
     } ${row ? 'relative' : 'absolute z-10'}`}
     style={{
       ...(row ? {} : PLACE[edge]),
+      animationDelay: `${delay}s`,
       fontSize: 'clamp(17px, calc(27 * var(--kc)), 30px)',
       letterSpacing: '0.01em',
     }}
@@ -103,52 +115,63 @@ type EdgeNavProps = {
 /** The order of the paths in the row on the home page, left to right. */
 const ROW: readonly Edge[] = ['left', 'bottom', 'right'];
 
+/** The row under the title, centred, where the home page's paths stand. */
+const Row = ({ children }: { children: ReactNode }) => (
+  <div
+    className="absolute inset-x-0 z-10 flex justify-center"
+    style={{
+      top: 'calc(196 * var(--k))',
+      fontSize: 'clamp(17px, calc(27 * var(--kc)), 30px)',
+    }}
+  >
+    <div className="relative flex gap-[1.6em]">{children}</div>
+  </div>
+);
+
 /**
  * The ways out. At home they stand in one row under the band's name, over
- * the mark: finds, about, music. Inside a section, the way back to the
- * forest is on the side it was entered from.
+ * the mark: music, about, finds. On the music and finds pages the way home
+ * stands in the same row under the title; on about it is on the side the
+ * page was entered from.
  */
 export const EdgeNav = ({ onHover }: EdgeNavProps) => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const section = sectionOf(pathname);
+  if (section) {
+    const row = section.page === 'music' || section.page === 'finds';
+    const home = (
+      <EdgeLink
+        to="/"
+        label={HOME_LABEL}
+        edge={section.back}
+        tone="ink"
+        row={row}
+        // The way home shows once the page's title has come.
+        delay={TITLE_DELAY[section.page] + 0.4}
+        onHover={(hot) => hot && onHover?.(section.back)}
+      />
+    );
+    return <nav aria-label="Paths">{row ? <Row>{home}</Row> : home}</nav>;
+  }
   return (
     <nav aria-label="Paths">
-      {section ? (
-        <EdgeLink
-          to="/"
-          label={HOME_LABEL}
-          edge={section.back}
-          // On the finds page the way back sits on the trunk.
-          tone={section.page === 'finds' ? 'paper' : 'ink'}
-          onHover={(hot) => hot && onHover?.(section.back)}
-        />
-      ) : (
-        <div
-          className="absolute inset-x-0 z-10 flex justify-center"
-          style={{
-            top: 'calc(196 * var(--k))',
-            fontSize: 'clamp(17px, calc(27 * var(--kc)), 30px)',
-          }}
-        >
-          <div className="relative flex gap-[2.6em]">
-            {ROW.map((edge) => {
-              const s = SECTIONS.find((x) => x.edge === edge);
-              if (!s) return null;
-              return (
-                <EdgeLink
-                  key={s.to}
-                  to={s.to}
-                  label={s.label}
-                  edge={s.edge}
-                  tone="ink"
-                  row
-                  onHover={(hot) => hot && onHover?.(s.edge)}
-                />
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <Row>
+        {ROW.map((edge) => {
+          const s = SECTIONS.find((x) => x.edge === edge);
+          if (!s) return null;
+          return (
+            <EdgeLink
+              key={s.to}
+              to={s.to}
+              label={s.label}
+              edge={s.edge}
+              tone="ink"
+              row
+              onHover={(hot) => hot && onHover?.(s.edge)}
+            />
+          );
+        })}
+      </Row>
     </nav>
   );
 };

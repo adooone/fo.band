@@ -11,4 +11,4 @@ const section = <const TPath extends string>(path: TPath, title: string) =>
 
 export const musicRoute = section('/music', 'Music');
 export const aboutRoute = section('/about', 'About');
-export const findsRoute = section('/finds', 'Finds');
+export const findsRoute = section('/art', 'Art');

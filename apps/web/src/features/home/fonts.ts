@@ -26,7 +26,7 @@ export type FontChoice = {
 
 export const DEFAULT_FONTS: FontChoice = {
   fontTitles: 'luminari',
-  fontText: 'caveat',
+  fontText: 'mansalva',
 };
 
 export const FONTS: { id: FontId; label: string; family: string }[] = [

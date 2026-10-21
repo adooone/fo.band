@@ -1,7 +1,7 @@
 import type { PageId } from '@/features/home/forest-renderer';
 
 export type Edge = 'left' | 'right' | 'bottom' | 'top';
-export type SectionPath = '/music' | '/about' | '/finds';
+export type SectionPath = '/music' | '/about' | '/art';
 
 export type Section = {
   to: SectionPath;
@@ -14,11 +14,11 @@ export type Section = {
 };
 
 /**
- * Three paths out of the forest: right to the music, down to the roots
- * (the band and its people), left to the finds (everyone's other work).
+ * Three paths out of the forest: left to the music, down to the roots
+ * (the band and its people), right to the art (everyone's other work).
  */
 export const SECTIONS: readonly Section[] = [
-  { to: '/music', label: 'Music', page: 'music', edge: 'right', back: 'left' },
+  { to: '/music', label: 'Music', page: 'music', edge: 'left', back: 'right' },
   {
     to: '/about',
     label: 'About',
@@ -27,11 +27,11 @@ export const SECTIONS: readonly Section[] = [
     back: 'top',
   },
   {
-    to: '/finds',
-    label: 'Finds',
+    to: '/art',
+    label: 'Art',
     page: 'finds',
-    edge: 'left',
-    back: 'right',
+    edge: 'right',
+    back: 'left',
   },
 ];
 

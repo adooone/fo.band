@@ -14,7 +14,7 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   `src/router.tsx` is the route table; `src/routes/` holds route definitions;
   `src/features/<name>/` holds pages and their components. `home/` is the living
   frame: `forest-renderer.ts` plants the forest and draws it on a canvas as one
-  skyline (hilly ground, grass ripple, and every tree's outline spliced into the same
+  skyline (hilly ground and every tree's outline spliced into the same
   line, morphing out of mounds), plus the mark with a breathing outline
   (`logo-paths.ts` from Figma with the f's spine, flattened by `path-outline.ts`;
   `sprout.ts` grows the f along its spine), `forest.tsx` wires
@@ -47,30 +47,35 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   frame and read as blur). `forest.tsx` lowers the canvas's pixel density when frames
   run slow and restores it when they run fast; the picture itself never changes.
 - Page changes are morphs in place, never slides or camera flights, and each one is a
-  choreography of stages with its own delays (`setPage`): on music the f and the o
-  sink first, the scene draws in once they are on their way, the trees go into the
-  ground and come up as mushrooms in a wave from the middle (a two-stage morph, for
-  forms with nothing in common), and the stump grows last with a touch of give; about
-  is only the camera drawing back (`ABOUT_ZOOM`), nothing in the forest changes, the
-  middle of the ground lifting to the strip of sky, the far hills drawing back less
-  (depth) and a few birds taking off from the trees by the clearing, drawn in screen
-  space. On the home page small tinted clouds drift along the top of the sky and a
-  few birds cross it now and then (`Sky` knobs in the tuner); both fade as a section
-  takes over. The pencil keeps its screen width whatever the camera does, and stays
-  away on about and finds. Every change stirs the
-  grass and sends a gust the way of travel. The skyline is one
-  polyline, and every tree has a form per page with the same point count. The f of
-  the mark is a tree in that line too (kind `mark`, finer point count): its form on
-  the home and about pages is the sprout's outline cut at the ground, written every
-  frame; on music it sinks into the ground (a flat form) and the stump grows out of
-  the ground beside it as a tree of its own; on finds the change runs in stages: every
-  tree and the f sink first, then the land pours from the left into a trunk column
-  (`trunkOutline`; each point goes to the place as far along the trunk's edge as it
-  was along the land, no loops left to tangle into gaps), then a branch grows out of
-  the trunk along a skeleton (`branch.ts`: shoots that lengthen and thicken, children
-  forking as the parent reaches them, leaves unfurling last). The branch joins the
-  land's path and is filled with it, so there is never a seam. Only the o is drawn on
-  its own.
+  choreography of stages with its own delays (`setPage`). Every change but music's
+  starts the same way: the forest hides (the trees sink; for finds the f and the o
+  too) and the far hills and clouds fade, the hills staying as they are
+  (`bare`); leaving, the page's own stages unwind first and the forest comes back
+  last. On music the horizon stays: the f and the o sink first, the scene draws in
+  once they are on their way, the trees go into the ground and come up as mushrooms
+  in a wave from the middle (a two-stage morph, for forms with nothing in common),
+  tufts of grass stand along the floor (the only grass on the site), and the stump grows last with a touch of give. On
+  about the horizon is drawn up to a thin strip of sky (`ABOUT_HORIZON`), the
+  left half a little ahead of the right, and the mark rides up on it in the middle,
+  shrinking (`ABOUT_MARK`), and following the move with a little inertia: a
+  soft spring over its foot squashes it as the ground pulls it and stretches it as
+  the ground stops, then it settles (`MARK_SPRING_*`, the one springy thing on the
+  site); a few birds take off from the trees by the clearing as
+  they sink. On finds the camera dives into the land until
+  the screen is all ink (`DIVE_ZOOM`), the left of the horizon running well ahead
+  of the right on the way, the line bending between them, and coming back going
+  down last (`DIVE_LEAD`), then the ink's edge is drawn in from the
+  right of the screen into the trunk's edge on the left (`trunkOutline`), the top a
+  little ahead of the bottom; the title stands in the middle with the way home under
+  it, as on music. On the home page small tinted clouds drift along the top of the
+  sky and a few birds cross it now and then (`Sky` knobs in the tuner). The pencil
+  keeps its screen width whatever the camera does, and stays away on about and
+  finds. Every change sends a gust the way of travel. The skyline
+  is one polyline, and every tree has a form per page with the same point count. The
+  f of the mark is a tree in that line too (kind `mark`, finer point count): its form
+  on the home and about pages is the sprout's outline cut at the ground, written
+  every frame; on music and finds it is flat, and on music the stump grows out of the ground
+  beside it as a tree of its own. Only the o is drawn on its own.
 
 ## Verify before you finish
 

@@ -26,7 +26,7 @@ Node 24 is pinned through Volta (`volta.node`), Bun and pnpm through `package.js
 
 A paper sky over an ink forest, and the edge between them is one continuous line, as if
 drawn without lifting the pencil. It runs along a wavy ground of hills, highest in the
-middle under the band's mark, with a ripple of grass that moves with the wind, and at
+middle under the band's mark, and at
 every tree it climbs the outline, goes over the crown and comes back down: round and
 oval crowns on short trunks, soft spruces, none taller than a third of the mark. On load
 the forest morphs out of a flat line: the hills swell, the line bulges into mounds and
@@ -37,16 +37,17 @@ the mark and put out the crossbar as two leaves, ending exactly on the Figma sha
 o rises beside it as the sun. The mark lives on the same canvas and its
 outline breathes. Trees lean with a drifting wind and gusts, the ground breathes.
 Three paths lead out of the forest, on the edges of the screen, with the arrow keys and
-with swipes, and every page is the same forest in another pose, never a slide: right to
+with swipes, and every page is the same forest in another pose, never a slide: left to
 «Music», where the scene draws in to the forest floor, the trees turn into mushrooms and
 a stump grows into a record player (after the back of Jethro Tull's «Songs from the
 Wood»: its cut face, with growth rings, is the record); down to «About», where the
-camera draws back until the forest is a thin strip of sky and land along the top; left to «Finds», where the trees and the f sink into the ground, the land pours into
-a tree trunk on the right and a branch grows out of it toward the title, forking and
-putting out leaves as it goes, leaving a white field for the work. The f is
+forest sinks into the ground, the horizon is drawn up into a thin strip
+of sky along the top, the mark riding up on it, small, in the middle; right to «Art», where the forest sinks, the camera
+dives into the land until the screen is all ink, and the ink's edge is drawn in from
+the right into a tree trunk on the left, leaving a white field for the work. The f is
 part of the skyline, so it morphs like a tree: on music it sinks into the ground and
-the stump grows up in its place, while the o sinks behind the horizon. Every change is
-marked by a pencil line that traces the skyline once and fades, as if the new picture
+the stump grows up in its place, while the o sinks behind the horizon. The change to
+music is marked by a pencil line that traces the skyline once and fades, as if the new picture
 were being drawn over the old.
 
 In dev (or with `?tune` in the URL) a panel of sliders along the bottom tunes every

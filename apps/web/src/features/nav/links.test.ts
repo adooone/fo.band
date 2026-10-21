@@ -1,18 +1,18 @@
 import { pageOf, pathToward } from './links';
 
 describe('the paths through the forest', () => {
-  it('leads right to music, down to about and left to the finds', () => {
-    expect(pathToward('/', 'right')).toBe('/music');
+  it('leads left to music, down to about and right to the art', () => {
+    expect(pathToward('/', 'left')).toBe('/music');
     expect(pathToward('/', 'bottom')).toBe('/about');
-    expect(pathToward('/', 'left')).toBe('/finds');
+    expect(pathToward('/', 'right')).toBe('/art');
     expect(pathToward('/', 'top')).toBeNull();
   });
 
   it('leads home the way each section was entered, and nowhere else', () => {
-    expect(pathToward('/music', 'left')).toBe('/');
-    expect(pathToward('/music', 'right')).toBeNull();
+    expect(pathToward('/music', 'right')).toBe('/');
+    expect(pathToward('/music', 'left')).toBeNull();
     expect(pathToward('/about', 'top')).toBe('/');
-    expect(pathToward('/finds', 'right')).toBe('/');
+    expect(pathToward('/art', 'left')).toBe('/');
   });
 
   it('names the page the forest stands on', () => {

@@ -31,7 +31,7 @@ strip on the right with bare leaves and a white field on the left, about
 raises the horizon to a strip about a sixth of the height, no roots drawn.
 After a review in Chrome the user found the finds turn dull and asked for a
 richer morph like sbjectv's and a graphic accent in place of its glitch:
-now the land rolls up left to right into the strip (trees become leaves as
+now the land rolls up into the strip (trees become leaves as
 the curl passes) and a pencil line traces the skyline on every page change,
 fading as it goes. Then the user asked for the f to be part of the skyline
 like the stump, so the morphs are natural: the f is now a tree in the line
