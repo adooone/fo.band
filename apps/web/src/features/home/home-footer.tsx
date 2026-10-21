@@ -1,4 +1,5 @@
 import type { PageId } from './forest-renderer';
+import { useIntroStage } from './intro';
 import { PugetSound } from './puget-sound';
 
 /** Where to listen and follow. */
@@ -17,7 +18,8 @@ const YEAR = new Date().getFullYear();
  * copyright. It fades out inside a section.
  */
 export const HomeFooter = ({ page }: { page: PageId }) => {
-  const home = page === 'home';
+  const stage = useIntroStage();
+  const home = page === 'home' && stage >= 3;
   return (
     <footer
       aria-hidden={!home}

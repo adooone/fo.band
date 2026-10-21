@@ -36,7 +36,15 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
 - Calm and smooth: tiny amplitudes, long wavelengths, slow flow. No glitches, no
   snapping, no overshoot: `ease` (smootherstep) everywhere. The one accent at a page
   change is the pencil line: a single stroke that traces the skyline by arc length
-  over the morph and fades behind itself, wandering a touch off the contour. Every animation subscribes to `subscribeTick` and reads time from
+  over the morph and fades behind itself, wandering a touch off the contour. On load
+  the pencil opens the piece instead, while the page loads: a blank sheet, the pencil
+  draws the skyline, hills and trees, left to right, while the land is poured in from
+  below the screen like water into a glass, its surface sloshing side to side and
+  bouncing until it settles into the hills; then the trees grow into the drawing from the middle outward as the line
+  fades and the clouds swell one by one; the f sprouts and the o rises; last, with
+  the text, the far hills rise behind the land (`drawOpening`, `DRAW_*`, `SLOSH*`, `RIPPLE*`). The text waits for the fonts and the
+  opening (`introTextAt`), then comes in group by group: titles, paths, the foot
+  (`intro.tsx`). Every animation subscribes to `subscribeTick` and reads time from
   `createClock` (clamped per frame), never from `Date.now()` or frame timestamps.
 - Wind and the mark's breathing outline come from slow simplex noise over position and time; anything
   that must loop seamlessly is sampled on circles in noise space, and any spin is

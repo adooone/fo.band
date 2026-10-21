@@ -1,4 +1,5 @@
 import type { PageId } from './forest-renderer';
+import { useIntroStage } from './intro';
 
 type SkyTitleProps = {
   title: string | null;
@@ -20,6 +21,8 @@ export const TITLE_DELAY: Record<PageId, number> = {
 
 export const SkyTitle = ({ title, page }: SkyTitleProps) => {
   const strip = page === 'about';
+  const stage = useIntroStage();
+  const shown = Boolean(title) && stage >= 1;
   return (
     <div
       className={`pointer-events-none absolute flex text-ink transition-opacity duration-500 ${
@@ -36,7 +39,7 @@ export const SkyTitle = ({ title, page }: SkyTitleProps) => {
               transform: 'translateY(-50%)',
             }
           : { top: 'calc(96 * var(--k))' }),
-        opacity: title ? 1 : 0,
+        opacity: shown ? 1 : 0,
         // It waits for its page: on about for the horizon to be drawn up,
         // on art for the trunk to clear the field.
         transitionDelay: title ? `${TITLE_DELAY[page]}s` : '0s',

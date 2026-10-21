@@ -1,4 +1,5 @@
 import type { PageId } from './forest-renderer';
+import { useIntroStage } from './intro';
 
 const NAME = 'Forest Orchestra';
 
@@ -8,7 +9,8 @@ const NAME = 'Forest Orchestra';
  * the two read as one voice. It fades out inside a section.
  */
 export const BandName = ({ page }: { page: PageId }) => {
-  const home = page === 'home';
+  const stage = useIntroStage();
+  const home = page === 'home' && stage >= 1;
   return (
     <div
       className="pointer-events-none absolute inset-x-0 text-center text-ink transition-opacity duration-500"

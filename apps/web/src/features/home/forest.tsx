@@ -81,7 +81,7 @@ export const Forest = ({
         cappedDpr() * PIXEL_STEPS[quality],
       );
       // With motion reduced the forest stands fully grown from the first frame.
-      renderer.draw(reduced ? 10 : clock.now());
+      renderer.draw(reduced ? 20 : clock.now());
     };
     resize();
     const observer =

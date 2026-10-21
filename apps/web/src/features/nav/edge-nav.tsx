@@ -1,5 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import type { CSSProperties, ReactNode } from 'react';
+import { useIntroStage } from '@/features/home/intro';
 import { TITLE_DELAY } from '@/features/home/sky-title';
 import { type Edge, HOME_LABEL, SECTIONS, sectionOf } from './links';
 
@@ -144,6 +145,13 @@ const Row = ({ children }: { children: ReactNode }) => (
 export const EdgeNav = ({ onHover }: EdgeNavProps) => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const section = sectionOf(pathname);
+  // On first load the paths wait their turn after the titles.
+  const shown = useIntroStage() >= 2;
+  const veil: CSSProperties = {
+    opacity: shown ? 1 : 0,
+    pointerEvents: shown ? undefined : 'none',
+    transition: 'opacity 0.8s ease',
+  };
   if (section) {
     const row = section.page === 'music' || section.page === 'finds';
     const home = (
@@ -158,10 +166,14 @@ export const EdgeNav = ({ onHover }: EdgeNavProps) => {
         onHover={(hot) => hot && onHover?.(section.back)}
       />
     );
-    return <nav aria-label="Paths">{row ? <Row>{home}</Row> : home}</nav>;
+    return (
+      <nav aria-label="Paths" style={veil}>
+        {row ? <Row>{home}</Row> : home}
+      </nav>
+    );
   }
   return (
-    <nav aria-label="Paths">
+    <nav aria-label="Paths" style={veil}>
       <Row>
         {ROW.map((edge) => {
           const s = SECTIONS.find((x) => x.edge === edge);

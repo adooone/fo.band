@@ -118,6 +118,41 @@ const CURTAIN_SECONDS = 0.9;
 const PHONE_WIDTH = 640;
 /** Share of the pull by which the bottom of the edge trails the top. */
 const CURTAIN_UNEVEN = 0.25;
+/**
+ * The opening, while the page loads: a blank sheet; after a beat the pencil
+ * draws the skyline, hills and trees, from left to right, and meanwhile the
+ * land is poured in from below the screen like water into a glass, sloshing
+ * side to side until it settles into the hills. Once all is drawn the
+ * trees grow into the drawing from the middle outward as the pencil's line
+ * fades, and the clouds swell slowly one by one; the f sprouts and the o
+ * rises; last, with the text, the far hills rise behind the land.
+ */
+const DRAW_WAIT = 0.3;
+const DRAW_SECONDS = 2.4;
+/** The land arrives at the hills this long after the pencil has finished. */
+const RISE_SETTLE = 0.5;
+/**
+ * The land fills the screen like water poured into a glass: its surface
+ * sloshes side to side as it rises (one side higher, then the other), with
+ * a quicker ripple on top, and settles into the hills as it arrives. How
+ * high the slosh and the ripple reach at their most (of the height), and
+ * how fast they swing (Hz).
+ */
+const SLOSH = 0.09;
+const SLOSH_HZ = 0.55;
+const RIPPLE = 0.025;
+const RIPPLE_HZ = 1.15;
+const DRAW_TOTAL = DRAW_WAIT + DRAW_SECONDS + RISE_SETTLE;
+/**
+ * The pencil's drawing holds this long after the land has risen, then fades
+ * over the next while, as the trees grow into it.
+ */
+const OPENING_HOLD = 0.8;
+const OPENING_FADE = 2.6;
+/** How long the clouds take to swell, one after another, once all is drawn. */
+const CLOUD_SECONDS = 3.5;
+/** How long the far hills take to rise, with the text. */
+const DAWN_SECONDS = 1.6;
 /** The skyline takes this much of the pencil's run; the rest is the o. */
 const PENCIL_MEET = 0.86;
 /**
@@ -536,6 +571,14 @@ export const DEFAULT_MARK: MarkOptions = {
   coil: 5,
 };
 
+/**
+ * When the text of the home page may show, seconds after the opening
+ * began: once the horizon is drawn, the forest has grown and the o has
+ * nearly risen.
+ */
+export const introTextAt = (mark: MarkOptions = DEFAULT_MARK): number =>
+  DRAW_TOTAL + SPROUT_DELAY + O_RISE_AT * mark.sproutSeconds + 2;
+
 /** The mark's outlines in viewBox units, evenly resampled so they can breathe. */
 const MARK_F: Outline = outlineOf(resample(flattenPath(LOGO_F), 260));
 const MARK_O: Outline = outlineOf(resample(flattenPath(LOGO_O), 110));
@@ -646,7 +689,12 @@ export const createForestRenderer = (
   let slowX0 = 0;
   let lastTime = 0;
   /** When the intro began, on the renderer's clock. */
-  let introStart = 0;
+  let introStart = DRAW_TOTAL;
+  /** Whether the forest was drawn by the pencil (it then stands grown), not morphed out of a line. */
+  let opening = true;
+  /** The skyline the pencil drew, kept to fade over the trees as they grow into it. */
+  let drawn = new Float64Array(0);
+  let drawnN = 0;
   let gustStart = -1;
   let gustDir: 1 | -1 = 1;
   let nextGust = 6;
@@ -665,7 +713,9 @@ export const createForestRenderer = (
   const dived = { from: 0, to: 0, start: -1e9 };
   const leafy = { from: 0, to: 0, start: -1e9 };
   /** When the pencil last set off: on a page change, or once the intro has grown. */
-  let pencilStart = opts.morphSeconds + opts.morphStagger * 0.5;
+  // The pencil's first stroke is the horizon itself (see the opening);
+  // it traces the skyline only on page changes.
+  let pencilStart = -1e9;
   /** Eases out and settles with a touch of give, no more than 3% past. */
   const settle = (p: number) => {
     const c1 = 0.5;
@@ -1050,6 +1100,11 @@ export const createForestRenderer = (
     };
     if (instant) {
       page = next;
+      // Opened straight into a section: no blank sheet to draw on first.
+      if (next !== 'home') {
+        introStart = lastTime;
+        opening = false;
+      }
       for (const key of keys) {
         stages[key].from = stages[key].to = target[key] ? 1 : 0;
       }
@@ -1300,7 +1355,18 @@ export const createForestRenderer = (
     const deep = H + 2 * Math.max(W, H);
     // The hills swell out of a flat line as the morph begins.
     const intro = time - introStart;
-    const swell = ease(clamp01((intro - 0.2) / opts.morphSeconds));
+    const swell = opening
+      ? 1
+      : ease(clamp01((intro - 0.2) / opts.morphSeconds));
+    // Pushed out, never faded in: the clouds swell one after another once
+    // all is drawn; the far hills rise from behind the land (and the birds
+    // start crossing) last, with the text.
+    const dawnRaw = opening
+      ? clamp01((intro - (introTextAt(markOpts) - DRAW_TOTAL)) / DAWN_SECONDS)
+      : 1;
+    const grow = ease(dawnRaw);
+    const cloudRaw = opening ? clamp01(intro / CLOUD_SECONDS) : 1;
+    const dawn = opening ? 1 : swell;
     /** How far the horizon has been drawn up for about at a world x: the left a touch ahead. */
     const risen = (x: number) =>
       rise <= 0
@@ -1322,23 +1388,27 @@ export const createForestRenderer = (
     // The sky of the home page: small clouds drifting along the top. They
     // belong to the forest's own view, so they go with the camera and fade
     // as a section takes over.
-    const skyShow = swell * (1 - Math.max(m, b));
+    const skyShow = dawn * (1 - Math.max(m, b));
     if (skyShow > 0.01 && clouds.length > 0 && opts.cloudTint > 0) {
       ctx.globalAlpha = skyShow;
-      for (const cloud of clouds) {
+      clouds.forEach((cloud, i) => {
+        const puff = ease(
+          clamp01(cloudRaw * 1.6 - (0.6 * i) / Math.max(1, clouds.length - 1)),
+        );
+        if (puff <= 0.01) return;
         ctx.fillStyle = cloud.far ? farCloudColour : cloudColour;
         const span = W + 4 * cloud.size;
         const x =
           ((cloud.x0 + opts.cloudSpeed * u * cloud.drift * time) % span) -
           2 * cloud.size;
         for (let k = 0; k < CLOUD_POINTS; k++) {
-          buffer[2 * k] = x + cloud.shape[2 * k];
-          buffer[2 * k + 1] = cloud.y + cloud.shape[2 * k + 1];
+          buffer[2 * k] = x + cloud.shape[2 * k] * puff;
+          buffer[2 * k + 1] = cloud.y + cloud.shape[2 * k + 1] * puff;
         }
         ctx.beginPath();
         traceSmooth(ctx, buffer, CLOUD_POINTS);
         ctx.fill();
-      }
+      });
       ctx.globalAlpha = 1;
       ctx.fillStyle = ink;
     }
@@ -1347,8 +1417,10 @@ export const createForestRenderer = (
     // horizon, high at the edges and dipping under the mark, a treeline
     // along it. They fade as the scene draws in for music and as the forest
     // hides.
-    const farShow = swell * (1 - m) * (1 - b);
-    if (farShow > 0.01 && opts.farTint > 0) {
+    const farShow = dawn * (1 - m) * (1 - b);
+    // Not before they start to rise: their fill runs down behind the land,
+    // and during the opening the land is not there yet to cover it.
+    if (farShow > 0.01 && grow > 0.001 && opts.farTint > 0) {
       ctx.fillStyle = farColour;
       ctx.globalAlpha = farShow;
       ctx.beginPath();
@@ -1364,7 +1436,7 @@ export const createForestRenderer = (
           (opts.farHeight + opts.farDip * valley) * H +
           0.006 * H * Math.sin(5.3 * c + 1.1) +
           farBumps[i];
-        const y = opts.horizon * H - rise * swell + breath;
+        const y = opts.horizon * H - rise * swell * grow + breath;
         if (first) {
           ctx.moveTo(x, deep);
           ctx.lineTo(x, y);
@@ -1451,7 +1523,12 @@ export const createForestRenderer = (
       if (bx + reach < x0 || bx - reach > x1) continue;
       // Morph: a flat stretch of the line bulges into a mound, and the
       // mound grows into the tree.
-      const p = ease(clamp01((intro - tree.delay) / opts.morphSeconds));
+      // While the pencil draws, the line it follows has every tree grown;
+      // after, the trees grow into it from the middle outward as ever.
+      const p =
+        opening && intro < 0
+          ? 1
+          : ease(clamp01((intro - tree.delay) / opts.morphSeconds));
       if (p <= 0) continue;
       const toMound = ease(clamp01(p / 0.35));
       const toTree = ease(clamp01((p - 0.35) / 0.65));
@@ -1517,7 +1594,15 @@ export const createForestRenderer = (
     }
 
     ctx.beginPath();
-    if (dive >= 0.999) {
+    let pencilOver: (() => void) | null = null;
+    if (intro < 0) {
+      pencilOver = drawOpening(
+        time - (introStart - DRAW_TOTAL),
+        n,
+        deep,
+        groundLine,
+      );
+    } else if (dive >= 0.999) {
       // Deep in the land the screen is all ink, and its edge is drawn in
       // from the right of the screen to the trunk's edge, the top a
       // little ahead of the bottom; the rest of the trunk's outline is off the left.
@@ -1553,6 +1638,22 @@ export const createForestRenderer = (
       ctx.closePath();
     }
     ctx.fill();
+    pencilOver?.();
+    // The pencil's drawing stays a moment over the land, fading as the
+    // trees grow into it.
+    if (
+      opening &&
+      intro >= 0 &&
+      intro < OPENING_HOLD + OPENING_FADE &&
+      drawnN > 1
+    ) {
+      strokePencil(
+        drawn,
+        drawnN,
+        Number.POSITIVE_INFINITY,
+        1 - ease(clamp01((intro - OPENING_HOLD) / OPENING_FADE)),
+      );
+    }
     camera();
 
     drawRecordPlayer(time, groundAt);
@@ -1573,7 +1674,117 @@ export const createForestRenderer = (
       x: e + zoom * x,
       y: g + zoom * y,
     }));
-    drawFlight(time, skyShow);
+    drawFlight(time, skyShow * grow);
+  };
+
+  /**
+   * The opening, `d` seconds in: the pencil's tip runs the skyline (the
+   * hills and every tree grown, `n` points of `line`) from left to right at
+   * an even pace along it while the ink waits in a band at the bottom; then
+   * the land, hills only (`groundLine`), rises from the band. Adds the ink
+   * to the current path (filled by the caller) and returns the pencil's
+   * stroke, to be drawn over the ink. Keeps the drawn line for the trees to
+   * grow into afterwards.
+   */
+  const drawOpening = (
+    d: number,
+    n: number,
+    deep: number,
+    groundLine: (x: number) => number,
+  ): (() => void) | null => {
+    if (n < 2) return null;
+    // The land poured in like water: a level rising from below the screen,
+    // its surface sloshing in the glass of the screen (the first mode tips
+    // it, left up while right is down, then back; the second ripples it),
+    // the slosh fading as it fills; over the last stretch the surface
+    // settles into the hills.
+    const below = 1.05 * H;
+    // Poured at a steady rate that eases off as the glass fills.
+    const poured = clamp01(
+      (d - DRAW_WAIT * 0.5) / (DRAW_TOTAL - DRAW_WAIT * 0.5),
+    );
+    const p = 1 - (1 - poured) ** 2;
+    // The slosh keeps bouncing the whole way and dies down only at the end.
+    const swing = Math.min(1, poured * 6) * (1 - poured) ** 0.6 * H;
+    const level =
+      below +
+      (opts.horizon * H - below) * p -
+      0.25 * RIPPLE * swing * Math.sin(TAU * 0.9 * d + 0.8);
+    const tip = SLOSH * swing * Math.sin(TAU * SLOSH_HZ * d + 0.3);
+    const ripple = RIPPLE * swing * Math.sin(TAU * RIPPLE_HZ * d + 1.7);
+    const settle = ease(clamp01((p - 0.65) / 0.35));
+    const xa = line[0];
+    const xb = line[2 * (n - 1)];
+    ctx.moveTo(xa, deep);
+    for (let i = 0; i < groundX.length; i++) {
+      const x = groundX[i];
+      if (x < xa) continue;
+      if (x > xb) break;
+      const surface =
+        level -
+        tip * Math.cos((Math.PI * x) / W) -
+        ripple * Math.cos((TAU * x) / W);
+      const y = surface + (groundLine(x) - surface) * settle;
+      ctx.lineTo(x, Math.min(below, y));
+    }
+    ctx.lineTo(xb, deep);
+    ctx.closePath();
+    if (drawn.length < n * 2) drawn = new Float64Array(line.length);
+    drawn.set(line.subarray(0, n * 2));
+    drawnN = n;
+    let total = 0;
+    for (let k = 1; k < n; k++) {
+      total += Math.hypot(
+        line[2 * k] - line[2 * k - 2],
+        line[2 * k + 1] - line[2 * k - 1],
+      );
+    }
+    const head = total * clamp01((d - DRAW_WAIT) / DRAW_SECONDS);
+    if (head <= 0) return null;
+    return () => strokePencil(line, n, head, 1);
+  };
+
+  /**
+   * The pencil's line along `n` points of `pts` up to arc length `head`,
+   * wandering a hand's width off them, at `alpha`.
+   */
+  const strokePencil = (
+    pts: Float64Array,
+    n: number,
+    head: number,
+    alpha: number,
+  ) => {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.strokeStyle = PENCIL;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = opts.pencilWidth * u;
+    ctx.globalAlpha = 0.9 * alpha;
+    ctx.beginPath();
+    let along = 0;
+    for (let k = 0; k < n; k++) {
+      if (k > 0) {
+        along += Math.hypot(
+          pts[2 * k] - pts[2 * k - 2],
+          pts[2 * k + 1] - pts[2 * k - 1],
+        );
+        if (along > head) break;
+      }
+      const a = Math.max(0, k - 1);
+      const b = Math.min(n - 1, k + 1);
+      const dx = pts[2 * b] - pts[2 * a];
+      const dy = pts[2 * b + 1] - pts[2 * a + 1];
+      const len = Math.hypot(dx, dy) || 1;
+      const w =
+        opts.pencilWander * u * noise(along / (opts.pencilWave * u), 0.3);
+      const x = pts[2 * k] - (dy / len) * w;
+      const y = pts[2 * k + 1] + (dx / len) * w;
+      if (k === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
   };
 
   /** One bird, a stroke of two wings at `x, y`, `flap` from −1 (down) to 1 (up). */
@@ -2121,8 +2332,9 @@ export const createForestRenderer = (
   };
 
   const restart = () => {
-    introStart = lastTime;
-    pencilStart = lastTime + opts.morphSeconds + opts.morphStagger * 0.5;
+    introStart = lastTime + DRAW_TOTAL;
+    opening = true;
+    pencilStart = -1e9;
   };
 
   return {

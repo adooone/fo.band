@@ -29,7 +29,12 @@ drawn without lifting the pencil. It runs along a wavy ground of hills, highest 
 middle under the band's mark, and at
 every tree it climbs the outline, goes over the crown and comes back down: round and
 oval crowns on short trunks, soft spruces, none taller than a third of the mark. On load
-the forest morphs out of a flat line: the hills swell, the line bulges into mounds and
+the page is a blank sheet: a pencil draws the skyline, hills and trees, from left to
+right while the land is poured in from below like water into a glass, sloshing side
+to side; then the trees grow into the
+drawing from the middle outward and the clouds swell, and last, with the text, the far
+hills rise. Opened straight into a section, the forest
+morphs out of a flat line instead: the hills swell, the line bulges into mounds and
 each mound grows into its tree, from the middle outward. Then the f sprouts like a fern
 (`sprout.ts`): its outline is bound to its centreline, so it can break ground with a
 rounded tip, stretch up with its tip coiled like a fiddlehead, unfurl into the frond of

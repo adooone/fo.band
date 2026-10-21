@@ -1,6 +1,7 @@
 import { Outlet, useRouterState } from '@tanstack/react-router';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { EdgeNav, pageOf, sectionOf, useDirections } from '@/features/nav';
+import { prefersReducedMotion } from '@/lib/ticker';
 import { BandName } from './band-name';
 import { Forest } from './forest';
 import {
@@ -13,6 +14,7 @@ import {
 } from './forest-renderer';
 import { HomeFooter } from './home-footer';
 import { InkPicker, inkPickerWanted, loadInk } from './ink-picker';
+import { IntroContext, useIntro } from './intro';
 import { SkyTitle } from './sky-title';
 
 type Edge = 'paper' | 'ink' | null;
@@ -94,30 +96,35 @@ export const HomeShell = () => {
   const picker = inkPickerWanted();
   const [ink, setInk] = useState(() => (picker ? loadInk() : undefined));
   const edges = useEdges(page, ink);
+  const [firstPage] = useState(page);
+  const [reduced] = useState(prefersReducedMotion);
+  const stage = useIntro(firstPage, reduced);
 
   return (
-    <main
-      className="home relative h-dvh overflow-hidden bg-paper text-ink"
-      style={ink ? ({ '--color-ink': ink } as CSSProperties) : undefined}
-    >
-      <Forest
-        className="absolute inset-0 block h-full w-full"
-        options={DEFAULT_OPTIONS}
-        mark={DEFAULT_MARK}
-        ink={ink}
-        page={page}
-        apiRef={forest}
-      />
-      <BandName page={page} />
-      <HomeFooter page={page} />
-      <SkyTitle title={current?.label ?? null} page={page} />
-      <Outlet />
-      <EdgeNav />
-      <EdgeStrip at="top" colour={edges.top} />
-      <EdgeStrip at="bottom" colour={edges.bottom} />
-      {picker && ink && page === 'home' && (
-        <InkPicker value={ink} onChange={setInk} />
-      )}
-    </main>
+    <IntroContext.Provider value={stage}>
+      <main
+        className="home relative h-dvh overflow-hidden bg-paper text-ink"
+        style={ink ? ({ '--color-ink': ink } as CSSProperties) : undefined}
+      >
+        <Forest
+          className="absolute inset-0 block h-full w-full"
+          options={DEFAULT_OPTIONS}
+          mark={DEFAULT_MARK}
+          ink={ink}
+          page={page}
+          apiRef={forest}
+        />
+        <BandName page={page} />
+        <HomeFooter page={page} />
+        <SkyTitle title={current?.label ?? null} page={page} />
+        <Outlet />
+        <EdgeNav />
+        <EdgeStrip at="top" colour={edges.top} />
+        <EdgeStrip at="bottom" colour={edges.bottom} />
+        {picker && ink && page === 'home' && stage >= 3 && (
+          <InkPicker value={ink} onChange={setInk} />
+        )}
+      </main>
+    </IntroContext.Provider>
   );
 };
