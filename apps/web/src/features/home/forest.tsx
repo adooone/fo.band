@@ -18,8 +18,6 @@ type ForestProps = {
   className?: string;
   options: ForestOptions;
   mark: MarkOptions;
-  /** The ink, a `#rrggbb` colour; the default when left out. */
-  ink?: string;
   /** Which page the forest stands on; changes travel there. */
   page: PageId;
   /** The live renderer, for the mark to read the wind and the shell to send gusts. */
@@ -42,7 +40,6 @@ export const Forest = ({
   className,
   options,
   mark,
-  ink,
   page,
   apiRef,
   onLayout,
@@ -51,7 +48,6 @@ export const Forest = ({
   const pageRef = useRef(page);
   const optionsRef = useRef(options);
   const markRef = useRef(mark);
-  const inkRef = useRef(ink);
   const onLayoutRef = useRef(onLayout);
   onLayoutRef.current = onLayout;
 
@@ -66,7 +62,6 @@ export const Forest = ({
     );
     if (!renderer) return;
     apiRef.current = renderer;
-    if (inkRef.current) renderer.setInk(inkRef.current);
     // Opening a section by its address starts there, without the journey.
     renderer.setPage(pageRef.current, true);
 
@@ -161,10 +156,6 @@ export const Forest = ({
     markRef.current = mark;
     apiRef.current?.setMark(mark);
   }, [mark, apiRef]);
-  useEffect(() => {
-    inkRef.current = ink;
-    if (ink) apiRef.current?.setInk(ink);
-  }, [ink, apiRef]);
 
   return (
     <canvas

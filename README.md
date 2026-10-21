@@ -56,10 +56,6 @@ the stump grows up in its place, while the o sinks behind the horizon. The way h
 from music is marked by a pencil line that traces the skyline once and fades, as if the new picture
 were being drawn over the old.
 
-In dev (or with `?tune` in the URL) a swatch under the mark picks the ink
-by hand; the pick stays in that browser and its hex shows beside it, ready to become
-the default (`INK` and `--color-ink`).
-
 Everything animated shares one `requestAnimationFrame` loop (`src/lib/ticker.ts`) and a
 clock clamped per frame, so a background tab or a long sleep never makes it race.
 

@@ -19,8 +19,7 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   (`logo-paths.ts` from Figma with the f's spine, flattened by `path-outline.ts`;
   `sprout.ts` grows the f along its spine), `forest.tsx` wires
   it to the shared loop; the knobs are `DEFAULT_OPTIONS` / `DEFAULT_MARK` in code,
-  and `ink-picker.tsx` is a swatch (dev or `?tune`) for trying the ink by hand,
-  kept in localStorage, `home-footer.tsx` the foot of the home page, `sky-title.tsx`
+  `home-footer.tsx` the foot of the home page, `sky-title.tsx`
   a section's title, `home-shell.tsx` puts them together under every route.
   `nav/` holds the links and the phone's bottom nav. `src/lib/ticker.ts` is the one
   requestAnimationFrame loop and the clamped clock every animation must use.
@@ -31,7 +30,7 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
 
 ## Motion rules
 
-- Two colours: `--color-ink` (forest green) and `--color-paper` (off-white). Blends
+- Two colours: `--color-ink` (black) and `--color-paper` (off-white). Blends
   of the two are fine; nothing else, except the pencil line, which is graphite black.
 - Calm and smooth: tiny amplitudes, long wavelengths, slow flow. No glitches, no
   snapping: `ease` (smootherstep) for anything that only moves. What grows or sinks

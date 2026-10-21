@@ -126,8 +126,8 @@
 }
 
 @theme {
-  /* Two colours only: forest-green ink and off-white paper. Everything else is a blend. */
-  --color-ink: #122121;
+  /* Two colours only: black ink and off-white paper. Everything else is a blend. */
+  --color-ink: #000000;
   --color-paper: #f7f6f1;
   --font-sans:
     "Luminari", "KyivType Sans", ui-sans-serif, system-ui, sans-serif;

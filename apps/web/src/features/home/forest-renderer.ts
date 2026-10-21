@@ -587,7 +587,7 @@ export type ForestRenderer = {
   layout: () => ForestLayout;
 };
 
-export const INK = '#122121';
+export const INK = '#000000';
 export const PAPER = '#f7f6f1';
 /** Paper with this much of the ink `base` in it, as a CSS colour. */
 const tinted = (share: number, base: string): string => {
