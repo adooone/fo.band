@@ -23,9 +23,9 @@ type Edge = 'paper' | 'ink' | null;
  * The colours of the page's top and bottom edges, for the thin strips
  * Safari tints its own bars from (it samples a fixed element hugging an
  * edge, else the page's background, and ignores `theme-color` since 26):
- * paper sky on top and ink land below; on the art page no strip below, as
- * its white field meets the bottom, and on a phone, where that page stays
- * all ink, ink at both. The colours switch at once, never in a transition
+ * paper sky on top and ink land below; on the art page no strips, as its
+ * white field meets the bottom and the trunk's ink the top left, and on a
+ * phone, where that page stays all ink, ink at both. The colours switch at once, never in a transition
  * (Safari keeps whatever it sampled halfway through), once the dive has
  * filled the screen on the way in and once it has cleared on the way out.
  */
@@ -46,10 +46,12 @@ const useEdges = (page: PageId, ink = INK) => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         const dark = art && Boolean(phone?.matches);
+        // On the art page the top is ink on the left (the trunk) and
+        // paper on the right: no strip fits, so none.
         setEdges(
           dark
             ? { top: 'ink', bottom: 'ink' }
-            : { top: 'paper', bottom: art ? null : 'ink' },
+            : { top: art ? null : 'paper', bottom: art ? null : 'ink' },
         );
         document.documentElement.classList.toggle('art-dark', dark);
         document

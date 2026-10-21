@@ -121,7 +121,26 @@ export const Forest = ({
     };
     const unsubscribe = reduced ? null : subscribeTick(tick);
 
+    // The home page looks past the forest with the pointer: a mouse or a
+    // pen, not a finger, and not with motion reduced.
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return;
+      renderer.setPointer(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        (event.clientY / window.innerHeight) * 2 - 1,
+      );
+    };
+    const onLeave = () => renderer.setPointer(0, 0);
+    if (!reduced) {
+      window.addEventListener('pointermove', onMove, { passive: true });
+      document.documentElement.addEventListener('mouseleave', onLeave);
+    }
+
     return () => {
+      if (!reduced) {
+        window.removeEventListener('pointermove', onMove);
+        document.documentElement.removeEventListener('mouseleave', onLeave);
+      }
       unsubscribe?.();
       observer?.disconnect();
       if (!observer) window.removeEventListener('resize', resize);

@@ -34,8 +34,16 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
 - Two colours: `--color-ink` (forest green) and `--color-paper` (off-white). Blends
   of the two are fine; nothing else, except the pencil line, which is graphite black.
 - Calm and smooth: tiny amplitudes, long wavelengths, slow flow. No glitches, no
-  snapping, no overshoot: `ease` (smootherstep) everywhere. The one accent at a page
-  change is the pencil line: a single stroke that traces the skyline by arc length
+  snapping: `ease` (smootherstep) for anything that only moves. What grows or sinks
+  has a body: it swells a little past its height from halfway on and comes back over
+  the last third (`swell`, never `overshoot`'s late twitch), draws up a touch before
+  it sinks (`anticipate`); the camera breathes back before a move, runs a hair past
+  its mark and settles (`glide`, `CAMERA_GIVE`); and when something lands (the
+  land after about or art, the stump on music) the ground takes the knock, a ripple
+  running out along the skyline and the trees nearby bobbing (`LAND_*`). All of it
+  a few per cent, never a bounce. In the opening the poured land spills over the
+  horizon and draws back, less each time, as it reaches the hills (`SPILL_*`). The
+  one accent at a page change is the pencil line: a single stroke that traces the skyline by arc length
   over the morph and fades behind itself, wandering a touch off the contour. On load
   the pencil opens the piece instead, while the page loads: a blank sheet, the pencil
   draws the skyline, hills and trees, left to right, while the land is poured in from
@@ -53,31 +61,42 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
 - Keep a frame cheap: anything that varies over tens of pixels (hills, wind) is tabled
   once a frame at a coarse pitch and interpolated; the tree and ground outlines carry
   no per-point noise at all (a pencil wobble was tried and dropped: it cost most of the
-  frame and read as blur). `forest.tsx` lowers the canvas's pixel density when frames
-  run slow and restores it when they run fast; the picture itself never changes.
-- Page changes are morphs in place, never slides or camera flights, and each one is a
-  choreography of stages with its own delays (`setPage`). Every change but music's
-  starts the same way: the forest hides (the trees sink; for finds the f and the o
-  too) and the far hills and clouds fade, the hills staying as they are
-  (`bare`); leaving, the page's own stages unwind first and the forest comes back
-  last. On music the horizon stays: the f and the o sink first, the scene draws in
+  frame and read as blur). Whatever does not change with time is found once, not per
+  frame: the far hills' rise and treeline, the record's ring wobble, the opening
+  pencil's wander, and the grown f's outline (`growMark` keeps the grown outline and
+  the direction its breathing pushes each point, and with no breathing writes the cut
+  form once). A settled tree's form is used in place, never copied; the ground is
+  emitted at every other sample unless the music page's tufts need the fine ones.
+  `forest.tsx` lowers the canvas's pixel density when frames run slow and restores it
+  when they run fast; the picture itself never changes. The scratchpad profiler
+  (a no-op context) must warm Bun's JIT first: the first run of a process is 5× slow.
+- Page changes are morphs in place or camera moves, never slides, and each one is a
+  choreography of stages with its own delays (`setPage`); leaving, the page's own
+  stages unwind first. On music the horizon stays: the f and the o sink first, the scene draws in
   once they are on their way, the trees go into the ground and come up as mushrooms
   in a wave from the middle (a two-stage morph, for forms with nothing in common),
   tufts of grass stand along the floor (the only grass on the site), and the stump grows last with a touch of give. On
-  about the horizon is drawn up to a thin strip of sky (`ABOUT_HORIZON`), the
-  left half a little ahead of the right, and the mark rides up on it in the middle,
-  shrinking (`ABOUT_MARK`), and following the move with a little inertia: a
-  soft spring over its foot squashes it as the ground pulls it and stretches it as
-  the ground stops, then it settles (`MARK_SPRING_*`, the one springy thing on the
-  site); a few birds take off from the trees by the clearing as
-  they sink. On finds the camera dives into the land until
-  the screen is all ink (`DIVE_ZOOM`), the left of the horizon running well ahead
-  of the right on the way, the line bending between them, and coming back going
-  down last (`DIVE_LEAD`), then the ink's edge is drawn in from the
+  about the forest sinks into the ground first (`ABOUT_HIDE_SECONDS`), then the
+  camera draws back: the horizon is drawn up to a thin strip of sky
+  (`ABOUT_HORIZON`), the left half a little ahead of the right, and the mark rides
+  up on it in the middle, shrinking (`ABOUT_MARK`); the mark follows
+  the move with a little inertia: a soft spring over its foot squashes it as the
+  ground pulls it and stretches it as the ground stops, then it settles
+  (`MARK_SPRING_*`); a few birds take off from the trees by the clearing as the
+  camera goes; coming home the forest grows back as the land lands. On finds the
+  trees stay: the camera breathes back and dives into the land through them and
+  the f (the o sinks, since the camera never leaves it behind) until the screen is
+  all ink (`DIVE_ZOOM`), the far hills and clouds gone by then, the
+  left of the horizon running well ahead of the right on the way, the line bending
+  between them, and coming back going down last (`DIVE_LEAD`) and landing with
+  give, then the ink's edge is drawn in from the
   right of the screen into the trunk's edge on the left (`trunkOutline`), the top a
   little ahead of the bottom; the title stands in the middle with the way home under
   it, as on music. On the home page small tinted clouds drift along the top of the
-  sky and a few birds cross it now and then. The pencil
+  sky and a few birds cross it now and then, and the page looks past the forest
+  with the pointer (`setPointer`, `LOOK_*`, `parallax`): the sky layers and the land
+  shift the other way (the near clouds the near clouds some 60 px at the edge of the screen, the land under 10), nearer ones more, following with a lag and easing
+  back to the middle on the way to a section; a mouse or a pen only, never a finger. The pencil
   keeps its screen width whatever the camera does, and stays away on about and
   finds. Every change sends a gust the way of travel. The skyline
   is one polyline, and every tree has a form per page with the same point count. The

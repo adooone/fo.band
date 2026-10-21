@@ -46,9 +46,10 @@ with swipes, and every page is the same forest in another pose, never a slide: l
 «Music», where the scene draws in to the forest floor, the trees turn into mushrooms and
 a stump grows into a record player (after the back of Jethro Tull's «Songs from the
 Wood»: its cut face, with growth rings, is the record); down to «About», where the
-forest sinks into the ground, the horizon is drawn up into a thin strip
-of sky along the top, the mark riding up on it, small, in the middle; right to «Art», where the forest sinks, the camera
-dives into the land until the screen is all ink, and the ink's edge is drawn in from
+forest sinks into the ground and the camera draws back: the horizon is drawn up into
+a thin strip of sky along the top, the mark riding up on it, small, in the middle;
+right to «Art», where the camera
+dives into the land through the trees until the screen is all ink, and the ink's edge is drawn in from
 the right into a tree trunk on the left, leaving a white field for the work. The f is
 part of the skyline, so it morphs like a tree: on music it sinks into the ground and
 the stump grows up in its place, while the o sinks behind the horizon. The change to

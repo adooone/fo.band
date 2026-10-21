@@ -1,5 +1,13 @@
 import { createNoise2D } from 'simplex-noise';
-import { clamp01, ease } from './easing';
+import {
+  anticipate,
+  clamp01,
+  ease,
+  glide,
+  glideAt,
+  swellAt,
+  swell as swellPast,
+} from './easing';
 import {
   flatShape,
   leafShape,
@@ -57,24 +65,46 @@ export type TreeKind =
 /** The four places of the site; the forest takes a different form on each. */
 export type PageId = 'home' | 'music' | 'finds' | 'about';
 /**
- * Every change but music's starts the same way: the forest hides (the
- * trees sink into the ground; on finds the mark too), the far hills and
- * the clouds fading. The hills stay as they are.
+ * The about page: the forest sinks into the ground first (this long, the
+ * next stage starting this long after it began), then the camera draws
+ * back: the horizon is drawn up until it is this far down the screen, a
+ * thin strip of sky over the land, the left half a little ahead of the
+ * right; the mark rides up on it in the middle, shrinking to this scale.
+ * The move eases, runs a little past and settles (`CAMERA_GIVE`); coming
+ * home the land lands the same way and the forest grows back.
  */
-const BARE_SECONDS = 0.45;
-/** The next stage starts this long after the forest began to hide. */
-const BARE_LEAD = 0.4;
-/**
- * The about page: once the forest has gone, the horizon is drawn up until
- * it is this far down the screen, a thin strip of sky over the land, the
- * left half a little ahead of the right; the mark rides up on it in the
- * middle, shrinking to this scale.
- */
+const ABOUT_HIDE_SECONDS = 0.45;
+const ABOUT_LEAD = 0.4;
 const ABOUT_HORIZON = 0.12;
-const ABOUT_SECONDS = 0.8;
+const ABOUT_SECONDS = 1.1;
 /** Share of the rise by which the right edge trails the left. */
 const ABOUT_UNEVEN = 0.25;
 const ABOUT_MARK = 0.22;
+/**
+ * How far the camera's moves run past their mark before settling (the
+ * `c1` of `glide`): about a hundredth of the move, felt more than seen.
+ * The dive draws back by the same before it goes.
+ */
+const CAMERA_GIVE = 0.3;
+/**
+ * How far things run past their size as they grow (the `c` of `swell`: a
+ * slow swell from halfway on, back over the last third, never a twitch):
+ * trees, the stump and the f about 2% of their height, the mushrooms
+ * about 4%; and how far they draw up before they sink (the `c1` of
+ * `anticipate`), about 2%.
+ */
+const GROW_SWELL = 1.8;
+const MUSHROOM_SWELL = 2;
+const SINK_DRAW = 0.7;
+/**
+ * When something lands (the land after about or art, the stump on music)
+ * the ground takes the knock: a ripple runs out from the spot along the
+ * skyline, this high (of the height) and over this long, and the trees
+ * near it bob, by this much of their height.
+ */
+const LAND_RIPPLE = 0.012;
+const LAND_SECONDS = 1.6;
+const LAND_BOB = 0.05;
 /**
  * The mark follows the horizon's move with a little inertia: its top is a
  * weight on a soft spring over its foot, so it squashes as the ground
@@ -88,6 +118,17 @@ const MARK_SPRING_GAIN = 0.6;
 const MARK_SPRING_MAX = 0.14;
 /** Birds take off from the trees as the forest hides, and fly this long. */
 const BIRDS_SECONDS = 3.2;
+/**
+ * How far the home page shifts with the pointer at the screen's edge, in
+ * u: the near clouds, the far clouds, the far hills and the land (the
+ * forest and the mark on it), each the other way from the pointer, nearer
+ * ones more; and how long the look takes to follow (seconds, exponential).
+ */
+const LOOK_CLOUDS = 64;
+const LOOK_FAR_CLOUDS = 32;
+const LOOK_HILLS = 20;
+const LOOK_LAND = 8;
+const LOOK_SECONDS = 0.4;
 /** How close the music page draws in to the forest floor. */
 const MUSIC_ZOOM = 2.1;
 /**
@@ -97,13 +138,14 @@ const MUSIC_ZOOM = 2.1;
  */
 export const FINDS_STRIP = 1 / 6;
 /**
- * The finds page in stages: once the forest has gone the camera dives into
- * the land, about a point this far (of the height) under the horizon, until
- * the screen is all ink; then the ink's edge is drawn in from the right of
- * the screen into the trunk's edge, the top a little ahead of the bottom.
- * The way back unwinds in the same order.
+ * The finds page in stages: the camera draws back a breath, then dives
+ * into the land, the forest and the mark growing past it, about a point
+ * this far (of the height) under the horizon, until the screen is all
+ * ink; then the ink's edge is drawn in from the right of the screen into
+ * the trunk's edge, the top a little ahead of the bottom. The way back
+ * unwinds in the same order, the camera landing with a little give.
  */
-const FINDS_SINK_SECONDS = 0.45;
+const MUSIC_SINK_SECONDS = 0.45;
 const DIVE_SECONDS = 0.85;
 const DIVE_DEPTH = 0.08;
 const DIVE_ZOOM = 14;
@@ -142,6 +184,13 @@ const SLOSH = 0.09;
 const SLOSH_HZ = 0.55;
 const RIPPLE = 0.025;
 const RIPPLE_HZ = 1.15;
+/**
+ * As the land reaches the hills (from this share of the pour) it runs a
+ * little over the horizon, this high (of the height) at most, and comes
+ * back over what is left of the pour: one swell, no spring.
+ */
+const SPILL_FROM = 0.72;
+const SPILL = 0.015;
 const DRAW_TOTAL = DRAW_WAIT + DRAW_SECONDS + RISE_SETTLE;
 /**
  * The pencil's drawing holds this long after the land has risen, then fades
@@ -158,8 +207,9 @@ const PENCIL_MEET = 0.86;
 /**
  * Page changes are quick and organic: the scene draws in or turns, and
  * every point of every outline starts on its own beat (tops and tips
- * first). Every curve eases in and out with no overshoot. Nothing slides:
- * every page is the same forest in another pose.
+ * first). Whatever grows runs a little past its height and settles;
+ * whatever sinks draws up first. Nothing slides: every page is the same
+ * forest in another pose.
  */
 const SCENE_SECONDS = 0.95;
 const PAGE_MORPH_SECONDS = 0.75;
@@ -247,6 +297,12 @@ export type ForestOptions = {
   birdsAbove: number;
   birdSize: number;
   birdSpeed: number;
+  /**
+   * How much the home page follows the pointer: the sky layers and the
+   * land shift a little the other way, nearer ones more, like looking
+   * past them. 0 is none, 1 the whole of it.
+   */
+  parallax: number;
 };
 
 export const DEFAULT_OPTIONS: ForestOptions = {
@@ -289,14 +345,19 @@ export const DEFAULT_OPTIONS: ForestOptions = {
   birdsAbove: 0.3,
   birdSize: 5,
   birdSpeed: 0.15,
+  parallax: 1,
 };
 
 /** Raised-cosine bump, 1 at the centre and 0 beyond ±1. */
 export const bump = (u: number): number =>
   u <= -1 || u >= 1 ? 0 : 0.5 + 0.5 * Math.cos(Math.PI * u);
 
-/** Points per tree outline; the mound has the same count, so they can morph. */
-export const POINTS = 96;
+/**
+ * Points per tree outline; the mound has the same count, so they can morph.
+ * Trees are a few dozen px tall: 64 draws them as well as 96 did, with a
+ * third less path for the browser to fill every frame.
+ */
+export const POINTS = 64;
 /** Points on the f's outline, finer than a tree's: it is the biggest thing in the line. */
 export const MARK_POINTS = 192;
 /** The stump's height as a share of the mark's: the music page draws in, so it is drawn small. */
@@ -514,6 +575,8 @@ export type ForestRenderer = {
   gust: (direction: 1 | -1) => void;
   /** Wind strength at a screen x right now, about −1..1 (positive blows right). */
   windAt: (x: number) => number;
+  /** Where the pointer is, −1..1 from the middle of the screen each way; the home page looks past the forest with it. */
+  setPointer: (x: number, y: number) => void;
   layout: () => ForestLayout;
 };
 
@@ -676,6 +739,8 @@ export const createForestRenderer = (
   let groundX = new Float64Array(0);
   /** The far treeline's little trees, as heights (px) over the far hills at every ground sample. */
   let farBumps = new Float64Array(0);
+  /** The far hills' whole rise over the horizon at every ground sample, ridge and trees. */
+  let farRise = new Float64Array(0);
   /** The forest floor seen close on the music page: tufts and little plants along the ground. */
   let floorBumps = new Float64Array(0);
   let farColour = tinted(opts.farTint, ink);
@@ -688,6 +753,9 @@ export const createForestRenderer = (
   let slowWind = new Float64Array(0);
   let slowX0 = 0;
   let lastTime = 0;
+  /** The pointer, −1..1 from the middle each way, and the look that follows it. */
+  const pointer = { x: 0, y: 0 };
+  const look = { x: 0, y: 0 };
   /** When the intro began, on the renderer's clock. */
   let introStart = DRAW_TOTAL;
   /** Whether the forest was drawn by the pencil (it then stands grown), not morphed out of a line. */
@@ -700,13 +768,11 @@ export const createForestRenderer = (
   let nextGust = 6;
   let page: PageId = 'home';
   /**
-   * How far each stage of a page change has gone, animated: the forest
-   * hidden; the horizon drawn up for about; the
-   * scene drawn in for music; the dive into the land, and its edge drawn
-   * in to the trunk, for finds.
+   * How far each stage of a page change has gone, animated: the horizon
+   * drawn up for about; the scene drawn in for music; the dive into the
+   * land, and its edge drawn in to the trunk, for finds.
    */
-  const bare = { from: 0, to: 0, start: -1e9 };
-  /** How far the o has set for finds. */
+  /** How far the o has set (it sinks for music, with the f). */
   const oSet = { from: 0, to: 0, start: -1e9 };
   const rooted = { from: 0, to: 0, start: -1e9 };
   const musical = { from: 0, to: 0, start: -1e9 };
@@ -716,11 +782,11 @@ export const createForestRenderer = (
   // The pencil's first stroke is the horizon itself (see the opening);
   // it traces the skyline only on page changes.
   let pencilStart = -1e9;
-  /** Eases out and settles with a touch of give, no more than 3% past. */
-  const settle = (p: number) => {
-    const c1 = 0.5;
-    return 1 + (c1 + 1) * (p - 1) ** 3 + c1 * (p - 1) ** 2;
-  };
+  /**
+   * The last landing: when, where (world x), how wide its knock spreads
+   * and how hard (1 is the land itself coming down).
+   */
+  const landing = { at: -1e9, x: 0, spread: 1, amp: 1 };
   /** When the birds last took off, and the tree tops they take off from (world px). */
   let birdsLaunch = -1e9;
   /** The mark's squash (−) and stretch (+), its rate, and the foot's last place and speed. */
@@ -789,24 +855,27 @@ export const createForestRenderer = (
    * of leaves) first, the foot last, so the shape pours into its new form
    * instead of fading.
    */
-  const formAt = (tree: Tree, t: number, out: Float64Array | number[]) => {
+  const formAt = (
+    tree: Tree,
+    t: number,
+    out: Float64Array,
+  ): Float64Array | number[] => {
     const a = tree.from;
     const b = tree.forms[tree.to];
     const elapsed = (t - tree.start) / tree.seconds;
     const n = tree.n;
-    if (elapsed >= 1) {
-      for (let k = 0; k < n * 2; k++) out[k] = b[k];
-      return;
-    }
+    // Settled: the page's own form, as it is, no copy.
+    if (elapsed >= 1) return b;
     if (tree.twoStage) {
-      // Down into the ground whole, a beat, then up out of it whole, the
-      // new form settling into place with a touch of give.
-      const sink = ease(clamp01(elapsed / 0.45));
-      const grow = settle(clamp01((elapsed - 0.45) / 0.55));
+      // Draws up a touch, then down into the ground whole, a beat, then up
+      // out of it whole, past its height, and settles (a mushroom pops).
+      const p1 = clamp01(elapsed / 0.45);
+      const sink = p1 < 1 ? anticipate(p1, SINK_DRAW) : 1;
+      const grow = swellPast(clamp01((elapsed - 0.45) / 0.55), MUSHROOM_SWELL);
       const src = sink < 1 ? a : b;
       const k = sink < 1 ? 1 - sink : grow;
       for (let j = 0; j < n * 2; j++) out[j] = src[j] * k;
-      return;
+      return out;
     }
     let reachA = 0;
     let reachB = 0;
@@ -815,20 +884,32 @@ export const createForestRenderer = (
       reachB = Math.max(reachB, Math.abs(b[2 * j + 1]));
     }
     const reach = Math.max(1e-6, reachA, reachB);
-    // The f sinks into the ground and grows back out of it whole, shrinking
-    // about its foot, rather than pouring in top first like a tree.
+    // The f and the stump sink into the ground and grow back out of it
+    // whole, shrinking about their foot, rather than pouring in top first
+    // like a tree.
+    const whole = tree.kind === 'mark' || tree.kind === 'stump';
     const stagger =
-      tree.kind === 'mark' && Math.min(reachA, reachB) < 2e-3
-        ? 0
-        : MORPH_STAGGER;
+      whole && Math.min(reachA, reachB) < 2e-3 ? 0 : MORPH_STAGGER;
+    // Growing, the height runs past and settles; sinking, it draws up
+    // first. The widths just ease.
+    const growing = reachB > 1.5 * reachA;
+    const sinking = reachA > 1.5 * reachB;
     for (let j = 0; j < n; j++) {
       const far =
         Math.max(Math.abs(a[2 * j + 1]), Math.abs(b[2 * j + 1])) / reach;
       const key = 1 - far;
-      const p = ease(clamp01((elapsed - key * stagger) / (1 - stagger)));
-      out[2 * j] = a[2 * j] + (b[2 * j] - a[2 * j]) * p;
-      out[2 * j + 1] = a[2 * j + 1] + (b[2 * j + 1] - a[2 * j + 1]) * p;
+      const q = clamp01((elapsed - key * stagger) / (1 - stagger));
+      const p = ease(q);
+      const py = growing
+        ? swellPast(q, GROW_SWELL)
+        : sinking
+          ? anticipate(q, SINK_DRAW)
+          : p;
+      // What sinks or grows whole keeps its proportions: both ways alike.
+      out[2 * j] = a[2 * j] + (b[2 * j] - a[2 * j]) * (whole ? py : p);
+      out[2 * j + 1] = a[2 * j + 1] + (b[2 * j + 1] - a[2 * j + 1]) * py;
     }
+    return out;
   };
 
   /**
@@ -927,14 +1008,16 @@ export const createForestRenderer = (
           h,
           w,
           seed,
-          0.3 +
+          // Straight after the land has settled, the middle first.
+          0.05 +
             (opts.morphStagger * Math.abs(x - W / 2)) / (W / 2) +
             0.15 * rng(),
           {
             home: tree,
             music,
-            // The forest hides on about and finds.
-            finds: flatShape(w / h),
+            // The finds page dives through the forest as it stands; on
+            // about it sinks into the ground before the camera draws back.
+            finds: tree,
             about: flatShape(w / h),
           },
         );
@@ -943,9 +1026,10 @@ export const createForestRenderer = (
     place(1, 2 * W + 0.1 * S);
     place(-1, -W - 0.1 * S);
     // The f of the mark, in the line like a tree: it sprouts, so its form
-    // on the home and about pages is written every frame (`growMark`); on
-    // the music and finds pages it sinks back into the ground. Never a
-    // mound: the sprout is its own intro.
+    // on the home and about pages is written every frame (`growMark`), and
+    // the finds page dives into it, so there it is the home form itself;
+    // on the music page it sinks back into the ground. Never a mound: the
+    // sprout is its own intro.
     const foot = markFoot();
     add(
       'mark',
@@ -962,6 +1046,8 @@ export const createForestRenderer = (
       },
       MARK_POINTS,
     );
+    const markForms = list[list.length - 1].forms;
+    markForms.finds = markForms.home;
     // The record player's stump: flat everywhere but on the music page,
     // where it grows out of the ground in the middle once the f has gone.
     const stumpH = STUMP_SHARE * logoH;
@@ -973,6 +1059,7 @@ export const createForestRenderer = (
     });
     // Left to right, the order the skyline walks them in.
     trees = list.sort((a, b) => a.x - b.x);
+    forgetMark();
     // The four trees nearest the clearing: where the birds sit.
     const sky = mulberry32(opts.seed * 41 + 3);
     const cloudNoise = createNoise2D(mulberry32(opts.seed * 43 + 9));
@@ -1074,25 +1161,44 @@ export const createForestRenderer = (
       (spruce) => u * (spruce ? 4 : 5.5),
       (spruce) => u * (spruce ? 6.5 : 3.6),
     );
+    // The ridge: high at the edges, dipping under the mark, waving a
+    // little, the treeline on top. Tabled once; a frame only scales it.
+    farRise = new Float64Array(groundX.length);
+    for (let i = 0; i < groundX.length; i++) {
+      const c = (groundX[i] - W / 2) / (W / 2);
+      const valley = 1 - (0.5 + 0.5 * Math.cos(Math.PI * c));
+      farRise[i] =
+        (opts.farHeight + opts.farDip * valley) * H +
+        0.006 * H * Math.sin(5.3 * c + 1.1) +
+        farBumps[i];
+    }
   };
 
   const linear = (p: number) => p;
   /** Each stage's value now; the uneven ones run linear and ease per point. */
+  /** The camera's move: a breath back, the run, past the mark and settled. */
+  const cameraSettle = (p: number) => glide(p, CAMERA_GIVE);
+  /** A breath back, then away: into the dive. */
+  const cameraLeap = (p: number) => anticipate(p, CAMERA_GIVE);
   const stageAt = {
-    bare: (t: number) => level(bare, t, BARE_SECONDS),
-    rooted: (t: number) => level(rooted, t, ABOUT_SECONDS, linear),
+    rooted: (t: number) => level(rooted, t, ABOUT_SECONDS, cameraSettle),
     musical: (t: number) => level(musical, t, SCENE_SECONDS),
-    dived: (t: number) => level(dived, t, DIVE_SECONDS, linear),
+    // In, it draws back a breath and leaps; out, it lands and settles.
+    dived: (t: number) =>
+      level(
+        dived,
+        t,
+        DIVE_SECONDS,
+        dived.to > dived.from ? cameraLeap : cameraSettle,
+      ),
     leafy: (t: number) => level(leafy, t, CURTAIN_SECONDS, linear),
   };
 
   const setPage = (next: PageId, instant = false) => {
     const now = lastTime;
-    const stages = { bare, rooted, musical, dived, leafy };
+    const stages = { rooted, musical, dived, leafy };
     const keys = Object.keys(stages) as (keyof typeof stages)[];
-    const hides = next === 'about' || next === 'finds';
     const target: Record<keyof typeof stages, boolean> = {
-      bare: hides,
       rooted: next === 'about',
       musical: next === 'music',
       dived: next === 'finds',
@@ -1108,7 +1214,7 @@ export const createForestRenderer = (
       for (const key of keys) {
         stages[key].from = stages[key].to = target[key] ? 1 : 0;
       }
-      oSet.from = oSet.to = next === 'finds' ? 1 : 0;
+      oSet.from = oSet.to = next === 'music' || next === 'finds' ? 1 : 0;
       for (const tree of trees) {
         tree.from = Float64Array.from(tree.forms[next]);
         tree.to = next;
@@ -1123,26 +1229,38 @@ export const createForestRenderer = (
       stages[key].start = now;
     }
     // Leaving, the page's own stages unwind first, in reverse: on finds the
-    // trunk's edge goes back off the right of the screen and the camera rises out of the land; on about the horizon
-    // comes back down; on music the scene draws back.
+    // trunk's edge goes back off the right of the screen and the camera
+    // rises out of the land; on about the horizon comes back down; on
+    // music the scene draws back. The land coming down lands with a
+    // knock.
     let out = 0;
+    const lands = (start: number, seconds: number) => {
+      landing.at = start + seconds * glideAt(CAMERA_GIVE);
+      landing.x = W / 2;
+      landing.spread = 2 * W;
+      landing.amp = 1;
+    };
     if (page === 'finds') {
       leafy.start = now;
       dived.start = leafy.start + (leafy.from > 0 ? CURTAIN_SECONDS : 0);
       out = dived.start - now + (dived.from > 0 ? DIVE_SECONDS : 0);
+      if (dived.from > 0) lands(dived.start, DIVE_SECONDS);
     } else if (page === 'about') {
       out = rooted.from > 0 ? ABOUT_SECONDS * 0.8 : 0;
+      if (rooted.from > 0) lands(now, ABOUT_SECONDS);
     } else if (page === 'music') {
       musical.start = now + 0.1;
       out = 0.5 * musical.from;
     }
-    // Then the forest hides (or comes back), and once it has gone the next
-    // page's own stages run.
-    bare.start = now + out;
+    // Then the next page's own stages run: for about once the forest has
+    // sunk. The o sinks as the dive starts (the camera never leaves it
+    // behind, so it would stand huge at the edge), and comes back only
+    // once the hills are back.
     oSet.from = level(oSet, now, 0.7);
     oSet.to = next === 'finds' ? 1 : 0;
-    oSet.start = next === 'finds' ? now : bare.start;
-    const entry = now + out + (hides && bare.from < 0.999 ? BARE_LEAD : 0);
+    oSet.start = now + out;
+    const hiding = next === 'about' && page !== 'about';
+    const entry = now + out + (hiding ? ABOUT_LEAD : 0);
     if (next === 'about') rooted.start = entry;
     if (next === 'finds') {
       dived.start = entry;
@@ -1160,9 +1278,15 @@ export const createForestRenderer = (
     gust(next === 'music' || page === 'finds' ? 1 : -1);
     const toMusic = next === 'music';
     const fromMusic = page === 'music';
+    const stumpLands = (start: number, seconds: number) => {
+      landing.at = start + seconds * swellAt(GROW_SWELL);
+      landing.x = W / 2;
+      landing.spread = 0.6 * W;
+      landing.amp = 0.5;
+    };
     for (const tree of trees) {
       const snapshot = new Float64Array(tree.n * 2);
-      formAt(tree, now, snapshot);
+      snapshot.set(formAt(tree, now, snapshot));
       tree.from = snapshot;
       tree.to = next;
       const d = Math.abs(tree.x - W / 2) / W;
@@ -1171,27 +1295,30 @@ export const createForestRenderer = (
       let seconds = PAGE_MORPH_SECONDS;
       tree.twoStage = false;
       if (tree.kind === 'mark') {
-        if (next === 'music' || next === 'finds') seconds = FINDS_SINK_SECONDS;
-        else {
-          wait = fromMusic ? 0.45 : out + 0.3;
-          seconds = 0.6;
+        if (toMusic) seconds = MUSIC_SINK_SECONDS;
+        else if (fromMusic) {
+          wait = 0.45;
+          seconds = 0.8;
         }
       } else if (tree.kind === 'stump') {
         if (toMusic) {
           wait = out + 0.45;
-          seconds = 0.7;
+          seconds = 0.9;
+          stumpLands(now + wait + jitter, seconds);
         } else if (fromMusic) seconds = 0.5;
       } else if (toMusic || fromMusic) {
         tree.twoStage = true;
         wait = (toMusic ? out + 0.25 : 0.2) + 0.3 * d;
-        seconds = 0.85;
-      } else if (hides) {
-        seconds = FINDS_SINK_SECONDS;
+        seconds = 1;
+      } else if (next === 'about') {
+        seconds = ABOUT_HIDE_SECONDS;
         wait = 0.15 * d;
-      } else {
-        // Home again: the trees grow back as the hills do.
+      } else if (page === 'about') {
+        // Home again: the trees grow back as the land lands.
         wait = out + 0.1 + 0.15 * d;
       }
+      // To and from finds the forest keeps its form: it goes with the
+      // camera.
       tree.seconds = seconds;
       tree.start = now + wait + jitter;
     }
@@ -1268,6 +1395,7 @@ export const createForestRenderer = (
   };
   const setMark = (next: MarkOptions) => {
     Object.assign(markOpts, next);
+    forgetMark();
     if (W > 0 && H > 0) {
       plant();
       onLayout?.(layout());
@@ -1295,6 +1423,7 @@ export const createForestRenderer = (
 
   const draw = (time: number) => {
     if (W === 0 || H === 0) return;
+    const prevTime = lastTime;
     lastTime = time;
     if (gustStart >= 0 && time - gustStart >= opts.gustSeconds) gustStart = -1;
     if (gustStart < 0 && time >= nextGust) {
@@ -1309,10 +1438,18 @@ export const createForestRenderer = (
     ctx.fillStyle = ink;
 
     const breath = 2.5 * u * Math.sin((time / opts.breathSeconds) * TAU);
-    const b = stageAt.bare(time);
     const rise = stageAt.rooted(time);
     const m = stageAt.musical(time);
     const dive = stageAt.dived(time);
+    // The look follows the pointer with a lag, and only at home: on the
+    // way to a section it eases back to the middle.
+    {
+      const dt = Math.min(0.1, Math.max(0, time - prevTime));
+      const at = 1 - Math.max(ease(clamp01(rise)), m, clamp01(dive));
+      const k = 1 - Math.exp(-dt / LOOK_SECONDS);
+      look.x += (-pointer.x * at * opts.parallax - look.x) * k;
+      look.y += (-pointer.y * at * opts.parallax - look.y) * k;
+    }
     // On a phone the art page stays all ink: the edge is never drawn in.
     const pull = W < PHONE_WIDTH ? 0 : stageAt.leafy(time);
     // The o sets with the f for finds, early on the way out and only as
@@ -1332,13 +1469,15 @@ export const createForestRenderer = (
     // the horizon runs ahead of the right (and, coming back, goes down
     // last). Everything below is drawn in the forest's own coordinates
     // through this.
+    // The dive's curve already breathes back and lands with give: the
+    // zoom follows it straight (past 1 it is only deeper in the ink).
     const zoom =
-      (1 + (MUSIC_ZOOM - 1) * m) * Math.exp(Math.log(DIVE_ZOOM) * ease(dive));
-    const lead = DIVE_LEAD * H * Math.sin(Math.PI * ease(dive));
+      (1 + (MUSIC_ZOOM - 1) * m) * Math.exp(Math.log(DIVE_ZOOM) * dive);
+    const lead = DIVE_LEAD * H * Math.sin(Math.PI * ease(clamp01(dive)));
     const px = W / 2;
     const py = groundRest(W / 2) + (m > 0 ? 0 : DIVE_DEPTH * H);
-    const e = px - zoom * px;
-    const g = py - zoom * py;
+    const e = px - zoom * px + look.x * LOOK_LAND * u;
+    const g = py - zoom * py + look.y * LOOK_LAND * u * 0.5;
     const camera = () =>
       ctx.setTransform(
         dprScale * zoom,
@@ -1367,19 +1506,45 @@ export const createForestRenderer = (
     const grow = ease(dawnRaw);
     const cloudRaw = opening ? clamp01(intro / CLOUD_SECONDS) : 1;
     const dawn = opening ? 1 : swell;
-    /** How far the horizon has been drawn up for about at a world x: the left a touch ahead. */
+    /**
+     * How far the horizon has been drawn up for about at a world x: the
+     * left a touch ahead; the camera's give past the mark (or, coming
+     * down, past the ground) is the same everywhere.
+     */
+    const give = rise > 1 ? rise - 1 : rise < 0 ? rise : 0;
     const risen = (x: number) =>
-      rise <= 0
+      rise === 0
         ? 0
         : ease(
             clamp01(
               rise * (1 + ABOUT_UNEVEN) - ABOUT_UNEVEN * ease(clamp01(x / W)),
             ),
-          );
+          ) + give;
+    // The knock of a landing: a ripple running out along the skyline from
+    // the spot, dying down.
+    const landAge = time - landing.at;
+    const knocked = landAge > 0 && landAge < LAND_SECONDS;
+    const knock = knocked
+      ? landing.amp * Math.exp(-2.5 * landAge) * (1 - landAge / LAND_SECONDS)
+      : 0;
+    const rippleAt = (x: number) => {
+      const d = Math.abs(x - landing.x);
+      return (
+        LAND_RIPPLE *
+        H *
+        knock *
+        bump(d / landing.spread) *
+        Math.sin(TAU * (1.4 * landAge - d / (0.8 * W)))
+      );
+    };
     /** Ground at a world x. */
     const groundAt = (x: number) => {
       const level0 = opts.horizon * H;
-      const y = level0 + (groundRest(x) - level0) * swell + breath;
+      const y =
+        level0 +
+        (groundRest(x) - level0) * swell +
+        breath +
+        (knocked ? rippleAt(x) : 0);
       const ahead =
         lead > 0 ? (lead * (1 - ease(clamp01((e + zoom * x) / W)))) / zoom : 0;
       return y + (ABOUT_HORIZON * H - y) * risen(x) - ahead;
@@ -1388,7 +1553,9 @@ export const createForestRenderer = (
     // The sky of the home page: small clouds drifting along the top. They
     // belong to the forest's own view, so they go with the camera and fade
     // as a section takes over.
-    const skyShow = dawn * (1 - Math.max(m, b));
+    // Not on about's strip of sky, and gone before the dive fills the screen.
+    const sink = 1 - ease(clamp01(2 * dive));
+    const skyShow = dawn * (1 - m) * (1 - ease(clamp01(rise))) * sink;
     if (skyShow > 0.01 && clouds.length > 0 && opts.cloudTint > 0) {
       ctx.globalAlpha = skyShow;
       clouds.forEach((cloud, i) => {
@@ -1401,9 +1568,13 @@ export const createForestRenderer = (
         const x =
           ((cloud.x0 + opts.cloudSpeed * u * cloud.drift * time) % span) -
           2 * cloud.size;
+        // Past the land's own shift, the sky goes farther with the look.
+        const shift = (cloud.far ? LOOK_FAR_CLOUDS : LOOK_CLOUDS) - LOOK_LAND;
+        const cx = x + look.x * shift * u;
+        const cy = cloud.y + look.y * shift * u * 0.5;
         for (let k = 0; k < CLOUD_POINTS; k++) {
-          buffer[2 * k] = x + cloud.shape[2 * k] * puff;
-          buffer[2 * k + 1] = cloud.y + cloud.shape[2 * k + 1] * puff;
+          buffer[2 * k] = cx + cloud.shape[2 * k] * puff;
+          buffer[2 * k + 1] = cy + cloud.shape[2 * k + 1] * puff;
         }
         ctx.beginPath();
         traceSmooth(ctx, buffer, CLOUD_POINTS);
@@ -1417,7 +1588,7 @@ export const createForestRenderer = (
     // horizon, high at the edges and dipping under the mark, a treeline
     // along it. They fade as the scene draws in for music and as the forest
     // hides.
-    const farShow = dawn * (1 - m) * (1 - b);
+    const farShow = dawn * (1 - m) * sink;
     // Not before they start to rise: their fill runs down behind the land,
     // and during the opening the land is not there yet to cover it.
     if (farShow > 0.01 && grow > 0.001 && opts.farTint > 0) {
@@ -1426,17 +1597,14 @@ export const createForestRenderer = (
       ctx.beginPath();
       let first = true;
       let lastX = x0;
-      for (let i = 0; i < groundX.length; i++) {
-        const x = groundX[i];
+      const lift = swell * grow;
+      const hx = look.x * (LOOK_HILLS - LOOK_LAND) * u;
+      const hy = look.y * (LOOK_HILLS - LOOK_LAND) * u * 0.5;
+      for (let i = 0; i < groundX.length; i += 2) {
+        const x = groundX[i] + hx;
         if (x < x0) continue;
         if (x > x1) break;
-        const c = (x - W / 2) / (W / 2);
-        const valley = 1 - (0.5 + 0.5 * Math.cos(Math.PI * c));
-        const rise =
-          (opts.farHeight + opts.farDip * valley) * H +
-          0.006 * H * Math.sin(5.3 * c + 1.1) +
-          farBumps[i];
-        const y = opts.horizon * H - rise * swell * grow + breath;
+        const y = opts.horizon * H - farRise[i] * lift + breath + hy;
         if (first) {
           ctx.moveTo(x, deep);
           ctx.lineTo(x, y);
@@ -1512,6 +1680,10 @@ export const createForestRenderer = (
       line[2 * n + 1] = y;
       n++;
     };
+    // The ground is sampled fine enough for the music page's tufts; with
+    // none to draw, every other sample is plenty for a smooth line and
+    // halves the path the browser has to fill.
+    const stride = m > 0 ? 1 : 2;
     let gi = 0;
     while (gi < groundX.length && groundX[gi] < x0) gi++;
     for (const tree of trees) {
@@ -1530,8 +1702,10 @@ export const createForestRenderer = (
           ? 1
           : ease(clamp01((intro - tree.delay) / opts.morphSeconds));
       if (p <= 0) continue;
-      const toMound = ease(clamp01(p / 0.35));
-      const toTree = ease(clamp01((p - 0.35) / 0.65));
+      // A short mound, then the tree: most of the time is the growth.
+      const toMound = ease(clamp01(p / 0.2));
+      // Up past its height and settling, like everything that grows here.
+      const toTree = swellPast(clamp01((p - 0.2) / 0.8), GROW_SWELL);
       const rest = groundAt(bx);
       const wind = slowAt(slowWind, bx);
       // A stump stands still; everything else leans with the wind, the
@@ -1547,20 +1721,37 @@ export const createForestRenderer = (
             wind *
             tree.h;
       const { mound } = tree;
-      const h = mark ? tree.h * mk : tree.h;
-      formAt(tree, time, shape);
+      // On about the whole forest shrinks with the mark as the camera
+      // draws back; a landing nearby makes a tree bob.
+      const bob =
+        knocked && !mark && tree.kind !== 'stump'
+          ? LAND_BOB *
+            knock *
+            bump((bx - landing.x) / landing.spread) *
+            Math.sin(TAU * 1.8 * landAge)
+          : 0;
+      const h = tree.h * mk * (1 + bob);
+      const form = formAt(tree, time, shape);
       // Something that is not there on this page (a flat form) leaves the
       // ground alone: no mound on load, nothing spliced in.
       let tall = 0;
       for (let j = 1; j < tree.n * 2; j += 2) {
-        tall = Math.max(tall, Math.abs(shape[j]));
+        tall = Math.max(tall, Math.abs(form[j]));
       }
       if (tall < 2e-3) continue;
+      const grown = p >= 1;
       for (let j = 0; j < tree.n; j++) {
-        const mx = mound[2 * j];
-        const my = mound[2 * j + 1] * toMound;
-        let lx = mx + (shape[2 * j] - mx) * toTree;
-        let ly = my + (shape[2 * j + 1] - my) * toTree;
+        let lx: number;
+        let ly: number;
+        if (grown) {
+          lx = form[2 * j];
+          ly = form[2 * j + 1];
+        } else {
+          const mx = mound[2 * j];
+          const my = mound[2 * j + 1] * toMound;
+          lx = mx + (form[2 * j] - mx) * toTree;
+          ly = my + (form[2 * j + 1] - my) * toTree;
+        }
         if (mark) {
           lx *= sx;
           ly *= sy;
@@ -1581,7 +1772,7 @@ export const createForestRenderer = (
       const right = buffer[2 * (tree.n - 1)];
       while (gi < groundX.length && groundX[gi] < left) {
         emit(groundX[gi], groundLine(groundX[gi]));
-        gi++;
+        gi += stride;
       }
       while (gi < groundX.length && groundX[gi] <= right) gi++;
       for (let j = 0; j < tree.n; j++) {
@@ -1590,7 +1781,7 @@ export const createForestRenderer = (
     }
     while (gi < groundX.length && groundX[gi] <= x1) {
       emit(groundX[gi], groundLine(groundX[gi]));
-      gi++;
+      gi += stride;
     }
 
     ctx.beginPath();
@@ -1677,6 +1868,11 @@ export const createForestRenderer = (
     drawFlight(time, skyShow * grow);
   };
 
+  const setPointer = (x: number, y: number) => {
+    pointer.x = Math.max(-1, Math.min(1, x));
+    pointer.y = Math.max(-1, Math.min(1, y));
+  };
+
   /**
    * The opening, `d` seconds in: the pencil's tip runs the skyline (the
    * hills and every tree grown, `n` points of `line`) from left to right at
@@ -1704,8 +1900,8 @@ export const createForestRenderer = (
       (d - DRAW_WAIT * 0.5) / (DRAW_TOTAL - DRAW_WAIT * 0.5),
     );
     const p = 1 - (1 - poured) ** 2;
-    // The slosh keeps bouncing the whole way and dies down only at the end.
-    const swing = Math.min(1, poured * 6) * (1 - poured) ** 0.6 * H;
+    // The slosh dies down well before the land reaches the hills.
+    const swing = Math.min(1, poured * 6) * (1 - poured) ** 2.5 * H;
     const level =
       below +
       (opts.horizon * H - below) * p -
@@ -1713,6 +1909,11 @@ export const createForestRenderer = (
     const tip = SLOSH * swing * Math.sin(TAU * SLOSH_HZ * d + 0.3);
     const ripple = RIPPLE * swing * Math.sin(TAU * RIPPLE_HZ * d + 1.7);
     const settle = ease(clamp01((p - 0.65) / 0.35));
+    // Reaching the hills the land runs a little over the horizon and comes
+    // back, one slow swell, most in the middle where it is poured and a
+    // touch uneven along; level again by the time it has filled.
+    const q = clamp01((poured - SPILL_FROM) / (1 - SPILL_FROM));
+    const spill = q > 0 && q < 1 ? SPILL * H * Math.sin(Math.PI * q) ** 2 : 0;
     const xa = line[0];
     const xb = line[2 * (n - 1)];
     ctx.moveTo(xa, deep);
@@ -1724,7 +1925,12 @@ export const createForestRenderer = (
         level -
         tip * Math.cos((Math.PI * x) / W) -
         ripple * Math.cos((TAU * x) / W);
-      const y = surface + (groundLine(x) - surface) * settle;
+      const y =
+        surface +
+        (groundLine(x) - surface) * settle -
+        spill *
+          (0.6 + 0.4 * Math.cos((Math.PI * (x - W / 2)) / W)) *
+          (1 + 0.2 * Math.sin((2.3 * Math.PI * x) / W + 0.4));
       ctx.lineTo(x, Math.min(below, y));
     }
     ctx.lineTo(xb, deep);
@@ -1748,6 +1954,9 @@ export const createForestRenderer = (
    * The pencil's line along `n` points of `pts` up to arc length `head`,
    * wandering a hand's width off them, at `alpha`.
    */
+  /** The opening pencil's wander at every point of the line, found once: it does not change with time. */
+  let wanderOf = new Float64Array(0);
+  let wanderN = 0;
   const strokePencil = (
     pts: Float64Array,
     n: number,
@@ -1755,6 +1964,21 @@ export const createForestRenderer = (
     alpha: number,
   ) => {
     if (alpha <= 0) return;
+    if (wanderN !== n) {
+      if (wanderOf.length < n) wanderOf = new Float64Array(n + 64);
+      let along = 0;
+      for (let k = 0; k < n; k++) {
+        if (k > 0) {
+          along += Math.hypot(
+            pts[2 * k] - pts[2 * k - 2],
+            pts[2 * k + 1] - pts[2 * k - 1],
+          );
+        }
+        wanderOf[k] =
+          opts.pencilWander * u * noise(along / (opts.pencilWave * u), 0.3);
+      }
+      wanderN = n;
+    }
     ctx.save();
     ctx.strokeStyle = PENCIL;
     ctx.lineCap = 'round';
@@ -1776,8 +2000,7 @@ export const createForestRenderer = (
       const dx = pts[2 * b] - pts[2 * a];
       const dy = pts[2 * b + 1] - pts[2 * a + 1];
       const len = Math.hypot(dx, dy) || 1;
-      const w =
-        opts.pencilWander * u * noise(along / (opts.pencilWave * u), 0.3);
+      const w = wanderOf[k];
       const x = pts[2 * k] - (dy / len) * w;
       const y = pts[2 * k + 1] + (dx / len) * w;
       if (k === 0) ctx.moveTo(x, y);
@@ -1834,9 +2057,11 @@ export const createForestRenderer = (
     for (let i = 0; i < flight.count; i++) {
       const lag = i * 0.09 * W;
       const x =
-        flight.from > 0 ? -0.1 * W + across - lag : 1.1 * W - across + lag;
+        (flight.from > 0 ? -0.1 * W + across - lag : 1.1 * W - across + lag) +
+        look.x * LOOK_CLOUDS * u;
       const y =
         flight.y +
+        look.y * LOOK_CLOUDS * u * 0.5 +
         0.025 * H * Math.sin(age * 1.3 + i * 2.1 + flight.seed) +
         i * 0.02 * H;
       const flap = 0.2 + 0.8 * Math.sin(age * 11 + i * 1.7 + flight.seed);
@@ -1858,7 +2083,7 @@ export const createForestRenderer = (
     if (flight < 0 || flight > BIRDS_SECONDS) return;
     ctx.strokeStyle = ink;
     ctx.lineCap = 'round';
-    ctx.lineWidth = 1.6 * u;
+    ctx.lineWidth = 2 * u;
     birdStarts.forEach((start, i) => {
       const age = flight - 0.14 * i;
       if (age <= 0) return;
@@ -1874,7 +2099,7 @@ export const createForestRenderer = (
         0.05 * H * age * age +
         0.008 * H * Math.sin(age * 6 + i * 2);
       // Smaller as they go, like going away.
-      const size = 7 * u * Math.max(0.35, 1 - 0.14 * age);
+      const size = 11 * u * Math.max(0.4, 1 - 0.14 * age);
       const flap = 0.2 + 0.8 * Math.sin(age * 13 + i * 1.7);
       drawBird(x, y, size, flap);
     });
@@ -1889,9 +2114,10 @@ export const createForestRenderer = (
    * fades out.
    */
   const drawPencil = (time: number, n: number, zoom: number) => {
-    // Into or out of about and finds the forest hides first, and the rising
-    // horizon or the dive is the whole event.
-    if (bare.to > 0 || bare.from > 0) return;
+    // Into or out of about and finds the camera's move is the whole event.
+    if (rooted.to > 0 || rooted.from > 0 || dived.to > 0 || dived.from > 0) {
+      return;
+    }
     // Drawn in the forest's coordinates but the same width on screen
     // whatever the camera does.
     const uz = u / zoom;
@@ -2010,21 +2236,40 @@ export const createForestRenderer = (
    * and a tone arm standing on the far edge of the cut with its head resting
    * on the rings.
    */
+  /**
+   * The rings' hand-drawn unevenness, tabled once per ring around the
+   * circle: as the disc spins the table is read at a turning offset.
+   */
+  const RING_SHARES = [
+    0.16, 0.27, 0.36, 0.43, 0.52, 0.6, 0.66, 0.74, 0.82, 0.9,
+  ];
+  const RING_STEPS = 96;
+  const ringWobble = (() => {
+    const table = new Float64Array(RING_SHARES.length * RING_STEPS);
+    for (let i = 0; i < RING_SHARES.length; i++) {
+      for (let q = 0; q < RING_STEPS; q++) {
+        const a = (q / RING_STEPS) * TAU;
+        table[i * RING_STEPS + q] =
+          1 + 0.035 * noise(Math.cos(a) * 1.4 + i * 3.1, Math.sin(a) * 1.4);
+      }
+    }
+    return table;
+  })();
   const drawRecordPlayer = (time: number, groundAt: (x: number) => number) => {
     const stump = stumpTree;
     if (!stump) return;
     // The face sits on the stump only once the stump has grown up to it.
-    formAt(stump, time, shape);
+    const form = formAt(stump, time, shape);
     let grown = 0;
     for (let j = 1; j < stump.n * 2; j += 2) {
-      grown = Math.max(grown, -shape[j]);
+      grown = Math.max(grown, -form[j]);
     }
     // On load straight onto the music page the stump still grows out of
     // its mound with the rest of the forest: the face waits for that too.
     const intro = ease(
       clamp01((time - introStart - stump.delay) / opts.morphSeconds),
     );
-    grown *= ease(clamp01((intro - 0.35) / 0.65));
+    grown *= ease(clamp01((intro - 0.2) / 0.8));
     const show = ease(clamp01((grown - 0.82) / 0.18));
     if (show <= 0) return;
     const cx = stump.x;
@@ -2046,19 +2291,21 @@ export const createForestRenderer = (
     // Growth rings, uneven like a real cut, a little wobbly by hand, and
     // turning slowly: the wobble travels round as the disc spins.
     const spin = time * 0.9;
-    const rings = [0.16, 0.27, 0.36, 0.43, 0.52, 0.6, 0.66, 0.74, 0.82, 0.9];
     ctx.strokeStyle = ink;
     ctx.lineWidth = Math.max(0.8, 0.008 * h);
-    for (let i = 0; i < rings.length; i++) {
-      const k = rings[i];
+    for (let i = 0; i < RING_SHARES.length; i++) {
+      const k = RING_SHARES[i];
       ctx.beginPath();
       const steps = 48;
       for (let q = 0; q <= steps; q++) {
         const a = (q / steps) * TAU;
-        const wob =
-          1 +
-          0.035 *
-            noise(Math.cos(a - spin) * 1.4 + i * 3.1, Math.sin(a - spin) * 1.4);
+        // The table at the turned angle, between two entries.
+        const at = (((((a - spin) / TAU) % 1) + 1) % 1) * RING_STEPS;
+        const i0 = Math.floor(at);
+        const f = at - i0;
+        const w0 = ringWobble[i * RING_STEPS + (i0 % RING_STEPS)];
+        const w1 = ringWobble[i * RING_STEPS + ((i0 + 1) % RING_STEPS)];
+        const wob = w0 + (w1 - w0) * f;
         const x = cx + fx * k * wob * Math.cos(a);
         const y = fcy + fy * k * wob * Math.sin(a);
         if (q === 0) ctx.moveTo(x, y);
@@ -2111,6 +2358,7 @@ export const createForestRenderer = (
    */
   const wobbleOf = (time: number, o: Outline, offset: number, sc: number) => {
     const amp = (markOpts.markWobble * u) / sc;
+    if (amp === 0) return () => 0;
     const wavelength = 120;
     const spin = time * 0.1;
     const r1 = o.length / (wavelength * TAU);
@@ -2127,8 +2375,26 @@ export const createForestRenderer = (
     };
   };
 
-  /** The f's outline cut at the ground, an open path in the making. */
+  /** The f's outline cut at the ground, an open path in the making, and where it crosses the ground. */
   const cut: number[] = [];
+  const crossK: number[] = [];
+  const crossX: number[] = [];
+  /** Arc length along `cut`, for the even resampling. */
+  let cutS = new Float64Array(MARK_F.n + 4);
+  /**
+   * Once the f has grown its outline changes only by its breathing, which
+   * is a push along fixed directions: the grown outline without it, and
+   * the push of one unit, are kept so a frame is a sum, not a sprout.
+   * With no breathing at all the cut form is written once and left.
+   */
+  let markBase: Float64Array | null = null;
+  let markDir: Float64Array | null = null;
+  let markStill = false;
+  const forgetMark = () => {
+    markBase = null;
+    markDir = null;
+    markStill = false;
+  };
 
   /**
    * Writes the f's form for this frame into the mark tree: the sprout's
@@ -2153,20 +2419,45 @@ export const createForestRenderer = (
       flat();
       return;
     }
-    const pose = sproutPose(F_SPINE, progress, markOpts.coil);
     const sc = tree.h / LOGO_VIEWBOX.h;
-    sproutOutline(
-      F_SPINE,
-      F_BOUND,
-      pose,
-      wobbleOf(time, MARK_F, 7, sc),
-      fBuffer,
-    );
+    if (progress < 1) {
+      forgetMark();
+      const pose = sproutPose(F_SPINE, progress, markOpts.coil);
+      sproutOutline(
+        F_SPINE,
+        F_BOUND,
+        pose,
+        wobbleOf(time, MARK_F, 7, sc),
+        fBuffer,
+      );
+    } else {
+      if (!markBase || !markDir) {
+        const pose = sproutPose(F_SPINE, 1, markOpts.coil);
+        markBase = new Float64Array(MARK_F.n * 2);
+        markDir = new Float64Array(MARK_F.n * 2);
+        sproutOutline(F_SPINE, F_BOUND, pose, () => 0, markBase);
+        sproutOutline(F_SPINE, F_BOUND, pose, () => 1, markDir);
+        for (let k = 0; k < markDir.length; k++) markDir[k] -= markBase[k];
+        markStill = false;
+      }
+      if (markOpts.markWobble === 0) {
+        if (markStill) return;
+        fBuffer.set(markBase);
+        markStill = true;
+      } else {
+        const wobble = wobbleOf(time, MARK_F, 7, sc);
+        for (let j = 0; j < MARK_F.n; j++) {
+          const d = wobble(j);
+          fBuffer[2 * j] = markBase[2 * j] + markDir[2 * j] * d;
+          fBuffer[2 * j + 1] = markBase[2 * j + 1] + markDir[2 * j + 1] * d;
+        }
+      }
+    }
     // Where the outline crosses the ground, walking round it.
     const N = MARK_F.n;
     const yc = F_CUT.y;
-    const crossK: number[] = [];
-    const crossX: number[] = [];
+    crossK.length = 0;
+    crossX.length = 0;
     for (let j = 0; j < N; j++) {
       const k = (j + 1) % N;
       const y0 = fBuffer[2 * j + 1];
@@ -2206,18 +2497,28 @@ export const createForestRenderer = (
       cut.push(fBuffer[2 * j], fBuffer[2 * j + 1]);
     }
     cut.push(crossX[(best + 1) % crossK.length], yc);
-    // Left foot first.
-    if (cut[0] > cut[cut.length - 2]) {
-      const rev: number[] = [];
-      for (let j = cut.length - 2; j >= 0; j -= 2) rev.push(cut[j], cut[j + 1]);
-      cut.length = 0;
-      cut.push(...rev);
+    // Left foot first: walked backwards if the cut came out the other way.
+    const m = cut.length / 2;
+    const backwards = cut[0] > cut[cut.length - 2];
+    const px = (i: number) => cut[2 * (backwards ? m - 1 - i : i)];
+    const py = (i: number) => cut[2 * (backwards ? m - 1 - i : i) + 1];
+    // Resampled evenly by arc length straight into the tree's forms, in
+    // its own units.
+    if (cutS.length < m) cutS = new Float64Array(m + 16);
+    cutS[0] = 0;
+    for (let i = 1; i < m; i++) {
+      cutS[i] = cutS[i - 1] + Math.hypot(px(i) - px(i - 1), py(i) - py(i - 1));
     }
-    const even = resampleOpen(cut, MARK_POINTS);
+    const length = cutS[m - 1];
     const vb = LOGO_VIEWBOX.h;
+    let seg = 0;
     for (let j = 0; j < MARK_POINTS; j++) {
-      const x = (even[2 * j] - F_CUT.x) / vb;
-      const y = (even[2 * j + 1] - yc) / vb;
+      const target = (j / (MARK_POINTS - 1)) * length;
+      while (seg + 2 < m && cutS[seg + 1] <= target) seg++;
+      const span = cutS[seg + 1] - cutS[seg] || 1;
+      const t = Math.min(1, (target - cutS[seg]) / span);
+      const x = (px(seg) + (px(seg + 1) - px(seg)) * t - F_CUT.x) / vb;
+      const y = (py(seg) + (py(seg + 1) - py(seg)) * t - yc) / vb;
       home[2 * j] = x;
       home[2 * j + 1] = y;
       about[2 * j] = x;
@@ -2332,6 +2633,7 @@ export const createForestRenderer = (
   };
 
   const restart = () => {
+    forgetMark();
     introStart = lastTime + DRAW_TOTAL;
     opening = true;
     pencilStart = -1e9;
@@ -2348,6 +2650,7 @@ export const createForestRenderer = (
     setPage,
     gust,
     windAt,
+    setPointer,
     layout,
   };
 };
