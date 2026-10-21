@@ -7,8 +7,11 @@ type EdgeLinkProps = {
   to: string;
   label: string;
   edge: Edge;
-  /** paper on the ink ground, ink in the paper sky. */
-  tone: 'ink' | 'paper';
+  /**
+   * paper on the ink ground, ink in the paper sky; `art` is ink over the
+   * art page's white field, but paper on a phone, where that page stays dark.
+   */
+  tone: 'ink' | 'paper' | 'art';
   /** Standing in the row under the band name, not on an edge of the screen. */
   row?: boolean;
   /** Seconds before it fades in. */
@@ -83,12 +86,16 @@ const EdgeLink = ({
   <Link
     to={to}
     className={`group block whitespace-nowrap font-text outline-none [animation:fade-in_0.5s_ease-out_both] ${
-      tone === 'ink' ? 'text-ink' : 'text-paper'
+      tone === 'ink'
+        ? 'text-ink'
+        : tone === 'art'
+          ? 'text-ink max-sm:text-paper'
+          : 'text-paper'
     } ${row ? 'relative' : 'absolute z-10'}`}
     style={{
       ...(row ? {} : PLACE[edge]),
       animationDelay: `${delay}s`,
-      fontSize: 'clamp(17px, calc(27 * var(--kc)), 30px)',
+      fontSize: 'var(--path)',
       letterSpacing: '0.01em',
     }}
     onMouseEnter={() => onHover?.(true)}
@@ -120,8 +127,8 @@ const Row = ({ children }: { children: ReactNode }) => (
   <div
     className="absolute inset-x-0 z-10 flex justify-center"
     style={{
-      top: 'calc(196 * var(--k))',
-      fontSize: 'clamp(17px, calc(27 * var(--kc)), 30px)',
+      top: 'var(--row)',
+      fontSize: 'var(--path)',
     }}
   >
     <div className="relative flex gap-[1.6em]">{children}</div>
@@ -144,7 +151,7 @@ export const EdgeNav = ({ onHover }: EdgeNavProps) => {
         to="/"
         label={HOME_LABEL}
         edge={section.back}
-        tone="ink"
+        tone={section.page === 'finds' ? 'art' : 'ink'}
         row={row}
         // The way home shows once the page's title has come.
         delay={TITLE_DELAY[section.page] + 0.4}

@@ -114,6 +114,8 @@ const DIVE_ZOOM = 14;
  */
 const DIVE_LEAD = 0.4;
 const CURTAIN_SECONDS = 0.9;
+/** Narrower than this (CSS px, Tailwind's `sm`), the art page stays all ink. */
+const PHONE_WIDTH = 640;
 /** Share of the pull by which the bottom of the edge trails the top. */
 const CURTAIN_UNEVEN = 0.25;
 /** The skyline takes this much of the pencil's run; the rest is the o. */
@@ -467,6 +469,8 @@ export type ForestRenderer = {
   setOptions: (options: Partial<ForestOptions>) => void;
   /** Updates the mark's size and the o's place, which set the clearing and the root. */
   setMark: (mark: MarkOptions) => void;
+  /** Changes the ink, a `#rrggbb` colour; every tint follows it. */
+  setInk: (ink: string) => void;
   /** Plays the intro again: the forest morphs out of the line, the f sprouts. */
   restart: () => void;
   /** Goes to a page: the scene takes its pose and the forest its forms. */
@@ -478,14 +482,14 @@ export type ForestRenderer = {
   layout: () => ForestLayout;
 };
 
-export const INK = '#2d493a';
+export const INK = '#122121';
 export const PAPER = '#f7f6f1';
-/** Paper with this much ink in it, as a CSS colour. */
-const tinted = (ink: number): string => {
+/** Paper with this much of the ink `base` in it, as a CSS colour. */
+const tinted = (share: number, base: string): string => {
   const mix = (at: number) => {
     const a = Number.parseInt(PAPER.slice(at, at + 2), 16);
-    const b = Number.parseInt(INK.slice(at, at + 2), 16);
-    return Math.round(a + (b - a) * ink)
+    const b = Number.parseInt(base.slice(at, at + 2), 16);
+    return Math.round(a + (b - a) * share)
       .toString(16)
       .padStart(2, '0');
   };
@@ -595,6 +599,7 @@ export const createForestRenderer = (
   if (!ctx) return null;
 
   const opts = { ...DEFAULT_OPTIONS, ...options };
+  let ink = INK;
   const markOpts = { ...mark };
   let blobNoise = createNoise2D(mulberry32(opts.seed * 17 + 1));
   const noise = createNoise2D(mulberry32(97));
@@ -630,7 +635,7 @@ export const createForestRenderer = (
   let farBumps = new Float64Array(0);
   /** The forest floor seen close on the music page: tufts and little plants along the ground. */
   let floorBumps = new Float64Array(0);
-  let farColour = tinted(opts.farTint);
+  let farColour = tinted(opts.farTint, ink);
   /**
    * The slowly varying part of the ground (hills and breath)
    * and the wind, tabled once a frame at a coarse pitch and read back by
@@ -683,9 +688,9 @@ export const createForestRenderer = (
     far: boolean;
   };
   const CLOUD_POINTS = 48;
-  let farCloudColour = tinted(opts.cloudTint * 0.5);
+  let farCloudColour = tinted(opts.cloudTint * 0.5, ink);
   let clouds: Cloud[] = [];
-  let cloudColour = tinted(opts.cloudTint);
+  let cloudColour = tinted(opts.cloudTint, ink);
   type Flight = {
     start: number;
     from: 1 | -1;
@@ -951,8 +956,8 @@ export const createForestRenderer = (
     }
     // The far ones first, so the near ones pass in front of them.
     clouds.sort((a, b) => Number(b.far) - Number(a.far));
-    cloudColour = tinted(opts.cloudTint);
-    farCloudColour = tinted(opts.cloudTint * 0.5);
+    cloudColour = tinted(opts.cloudTint, ink);
+    farCloudColour = tinted(opts.cloudTint * 0.5, ink);
     birdStarts = trees
       .filter((t) => t.kind !== 'mark' && t.kind !== 'stump')
       .sort((a, b) => Math.abs(a.x - W / 2) - Math.abs(b.x - W / 2))
@@ -1006,7 +1011,7 @@ export const createForestRenderer = (
     return bumps;
   };
   const plantFar = () => {
-    farColour = tinted(opts.farTint);
+    farColour = tinted(opts.farTint, ink);
     farBumps = treeline(
       opts.seed * 31 + 5,
       (spruce) => u * (spruce ? 11.5 : 14.5),
@@ -1199,6 +1204,13 @@ export const createForestRenderer = (
       resize(w, H, lastDpr);
     }
   };
+  const setInk = (next: string) => {
+    if (!/^#[0-9a-f]{6}$/i.test(next)) return;
+    ink = next;
+    farColour = tinted(opts.farTint, ink);
+    cloudColour = tinted(opts.cloudTint, ink);
+    farCloudColour = tinted(opts.cloudTint * 0.5, ink);
+  };
   const setMark = (next: MarkOptions) => {
     Object.assign(markOpts, next);
     if (W > 0 && H > 0) {
@@ -1239,14 +1251,15 @@ export const createForestRenderer = (
     ctx.setTransform(dprScale, 0, 0, dprScale, 0, 0);
     ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = INK;
+    ctx.fillStyle = ink;
 
     const breath = 2.5 * u * Math.sin((time / opts.breathSeconds) * TAU);
     const b = stageAt.bare(time);
     const rise = stageAt.rooted(time);
     const m = stageAt.musical(time);
     const dive = stageAt.dived(time);
-    const pull = stageAt.leafy(time);
+    // On a phone the art page stays all ink: the edge is never drawn in.
+    const pull = W < PHONE_WIDTH ? 0 : stageAt.leafy(time);
     // The o sets with the f for finds, early on the way out and only as
     // the hills come back on the way home; for music it sinks before the
     // scene draws in. On about the mark stays, riding up and shrinking.
@@ -1327,7 +1340,7 @@ export const createForestRenderer = (
         ctx.fill();
       }
       ctx.globalAlpha = 1;
-      ctx.fillStyle = INK;
+      ctx.fillStyle = ink;
     }
 
     // The far hills first, behind everything: a faint ridge over the
@@ -1365,7 +1378,7 @@ export const createForestRenderer = (
       ctx.closePath();
       ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.fillStyle = INK;
+      ctx.fillStyle = ink;
     }
 
     // The skyline is one line, walked left to right: the ground, and at
@@ -1382,11 +1395,24 @@ export const createForestRenderer = (
       slow[i] = groundAt(x);
       slowWind[i] = windAt(x);
     }
+    // Read back through a Catmull-Rom curve, not straight segments, so the
+    // ground has no corners even when the camera draws in close.
     const slowAt = (table: Float64Array, x: number) => {
       const f = (x - slowX0) / SLOW_PITCH;
       const i = Math.max(0, Math.min(slowN - 2, Math.floor(f)));
       const t = Math.max(0, Math.min(1, f - i));
-      return table[i] + (table[i + 1] - table[i]) * t;
+      const p0 = table[Math.max(0, i - 1)];
+      const p1 = table[i];
+      const p2 = table[i + 1];
+      const p3 = table[Math.min(slowN - 1, i + 2)];
+      return (
+        p1 +
+        0.5 *
+          t *
+          (p2 -
+            p0 +
+            t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)))
+      );
     };
     /** The ground at a world x: a clean line, but for the grass of the music page. */
     const floorStep = groundX.length > 1 ? groundX[1] - groundX[0] : 1;
@@ -1590,7 +1616,7 @@ export const createForestRenderer = (
       return;
     }
     if (show <= 0.01) return;
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = ink;
     ctx.lineCap = 'round';
     ctx.lineWidth = 1.5 * u;
     ctx.globalAlpha = show;
@@ -1619,7 +1645,7 @@ export const createForestRenderer = (
   ) => {
     const flight = time - birdsLaunch;
     if (flight < 0 || flight > BIRDS_SECONDS) return;
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = ink;
     ctx.lineCap = 'round';
     ctx.lineWidth = 1.6 * u;
     birdStarts.forEach((start, i) => {
@@ -1810,7 +1836,7 @@ export const createForestRenderer = (
     // turning slowly: the wobble travels round as the disc spins.
     const spin = time * 0.9;
     const rings = [0.16, 0.27, 0.36, 0.43, 0.52, 0.6, 0.66, 0.74, 0.82, 0.9];
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = ink;
     ctx.lineWidth = Math.max(0.8, 0.008 * h);
     for (let i = 0; i < rings.length; i++) {
       const k = rings[i];
@@ -1830,7 +1856,7 @@ export const createForestRenderer = (
       ctx.closePath();
       ctx.stroke();
     }
-    ctx.fillStyle = INK;
+    ctx.fillStyle = ink;
     ctx.beginPath();
     ctx.ellipse(cx, fcy, fx * 0.035, fy * 0.06, 0, 0, TAU);
     ctx.fill();
@@ -2030,7 +2056,7 @@ export const createForestRenderer = (
       markOpts.oScale *
       (1 + 0.02 * Math.sin((time / markOpts.markBreath) * TAU + 1.3));
     const oWobble = wobbleOf(time, MARK_O, 23, sc);
-    ctx.fillStyle = INK;
+    ctx.fillStyle = ink;
     // Solid ink the whole way: it comes up from behind the hill like a
     // sun, never as a pale disc through the far hills.
     ctx.globalAlpha = 1;
@@ -2105,6 +2131,7 @@ export const createForestRenderer = (
     draw,
     setOptions,
     setMark,
+    setInk,
     restart,
     setPage,
     gust,

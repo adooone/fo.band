@@ -18,8 +18,9 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   line, morphing out of mounds), plus the mark with a breathing outline
   (`logo-paths.ts` from Figma with the f's spine, flattened by `path-outline.ts`;
   `sprout.ts` grows the f along its spine), `forest.tsx` wires
-  it to the shared loop, `tuner.tsx` is the slider panel (dev or `?tune`) whose values
-  live in localStorage and whose defaults are `DEFAULT_OPTIONS` / `DEFAULT_MARK`, `corner-link.tsx` the corner labels, `sky-title.tsx`
+  it to the shared loop; the knobs are `DEFAULT_OPTIONS` / `DEFAULT_MARK` in code,
+  and `ink-picker.tsx` is a swatch (dev or `?tune`) for trying the ink by hand,
+  kept in localStorage, `home-footer.tsx` the foot of the home page, `sky-title.tsx`
   a section's title, `home-shell.tsx` puts them together under every route.
   `nav/` holds the links and the phone's bottom nav. `src/lib/ticker.ts` is the one
   requestAnimationFrame loop and the clamped clock every animation must use.
@@ -68,7 +69,7 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   right of the screen into the trunk's edge on the left (`trunkOutline`), the top a
   little ahead of the bottom; the title stands in the middle with the way home under
   it, as on music. On the home page small tinted clouds drift along the top of the
-  sky and a few birds cross it now and then (`Sky` knobs in the tuner). The pencil
+  sky and a few birds cross it now and then. The pencil
   keeps its screen width whatever the camera does, and stays away on about and
   finds. Every change sends a gust the way of travel. The skyline
   is one polyline, and every tree has a form per page with the same point count. The

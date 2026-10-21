@@ -22,7 +22,7 @@ export const BandName = ({ page }: { page: PageId }) => {
       <span
         className="block whitespace-nowrap font-brush"
         style={{
-          fontSize: 'clamp(30px, calc(60 * var(--k)), 76px)',
+          fontSize: 'var(--title)',
           letterSpacing: '0.01em',
         }}
       >

@@ -30,7 +30,7 @@
   font-style: normal;
   font-display: swap;
 }
-/* KTF Metro by Kyiv Type Foundry: local only, for trying in the tuner; its licence
+/* KTF Metro by Kyiv Type Foundry: local only, for trying out; its licence
    forbids redistribution, so the files are git-ignored and never the default. */
 @font-face {
   font-family: "KTF Metro Roman";
@@ -127,15 +127,15 @@
 
 @theme {
   /* Two colours only: forest-green ink and off-white paper. Everything else is a blend. */
-  --color-ink: #2d493a;
+  --color-ink: #122121;
   --color-paper: #f7f6f1;
   --font-sans:
     "Luminari", "KyivType Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Luminari", "KyivType Serif", Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, monospace;
-  /* The titles' face and the face of everything else; the tuner can swap both. */
-  --font-brush: "Caesar Dressing", "Mansalva", "Caveat Brush", cursive;
-  --font-text: "Mansalva", "Caveat Brush", "Luminari", cursive;
+  /* The titles' face and the face of everything else. */
+  --font-brush: "Luminari", "Mansalva", serif;
+  --font-text: "Mansalva", "Luminari", cursive;
 
   @keyframes fade-in {
     from {
@@ -150,11 +150,22 @@
 @layer base {
   /* Everything outside the canvas (rubber-band overscroll, the area under
      the phone's status bar) is paper, like the sky. */
+  /* Paper above, ink below: whatever shows past the page (a phone's
+     toolbar, the bounce of an overscroll) carries on the sky at the top and
+     the land at the bottom. */
   html {
-    @apply bg-paper;
+    background-color: var(--color-paper);
+    background-image: linear-gradient(
+      var(--color-paper) 50%,
+      var(--color-ink) 50%
+    );
+  }
+  /* A phone on the art page: all ink, the browser's bars too. */
+  html.art-dark {
+    background: var(--color-ink);
   }
   body {
-    @apply bg-paper text-ink font-serif antialiased;
+    @apply text-ink font-serif antialiased;
   }
 
   /* One design pixel of the 1440 × 1024 frame, as a length. */
@@ -162,6 +173,13 @@
     --k: min(100vw / 1440, 100vh / 1024);
     /* Corner labels never shrink below two thirds, so they stay readable. */
     --kc: max(var(--k), 0.66px);
+    /* The titles (the band's name, a section's) and the paths, never so small
+       on a phone that they stop reading. */
+    --title: clamp(36px, calc(60 * var(--k)), 76px);
+    --path: clamp(21px, calc(27 * var(--kc)), 30px);
+    /* The paths' row under the title: where it stands on a big screen, and
+       never closer to the title than that on a phone. */
+    --row: max(calc(196 * var(--k)), calc(96 * var(--k) + 1.67 * var(--title)));
   }
 
   /* Portrait phones: the same composition fitted to the width. */

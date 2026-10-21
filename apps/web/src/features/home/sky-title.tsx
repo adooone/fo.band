@@ -24,6 +24,9 @@ export const SkyTitle = ({ title, page }: SkyTitleProps) => {
     <div
       className={`pointer-events-none absolute flex text-ink transition-opacity duration-500 ${
         strip ? '' : 'inset-x-0 justify-center text-center'
+      } ${
+        // On a phone the art page stays dark: the title is paper there.
+        page === 'finds' ? 'max-sm:text-paper' : ''
       }`}
       style={{
         ...(strip
@@ -44,8 +47,8 @@ export const SkyTitle = ({ title, page }: SkyTitleProps) => {
         className="block font-brush"
         style={{
           fontSize: strip
-            ? 'clamp(24px, calc(44 * var(--k)), 54px)'
-            : 'clamp(30px, calc(60 * var(--k)), 76px)',
+            ? 'clamp(30px, calc(44 * var(--k)), 54px)'
+            : 'var(--title)',
           letterSpacing: '0.01em',
         }}
       >
