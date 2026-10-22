@@ -123,8 +123,18 @@ const bezier = (p0: Pt, p1: Pt, p2: Pt, p3: Pt, n = 24): Pt[] => {
   return out;
 };
 
-/** A stroke along a path as a closed outline, its width going from `w0` to `w1`. */
-const ribbon = (pts: Pt[], w0: number, w1: number): Pt[] => {
+/**
+ * A stroke along a path as a closed outline, its width going from `w0` to
+ * `w1`; with a `flare` it widens toward its start like the foot of a tree
+ * trunk, by `flare` at the very start, over the first `span` of its length.
+ */
+const ribbon = (
+  pts: Pt[],
+  w0: number,
+  w1: number,
+  flare = 0,
+  span = 0.3,
+): Pt[] => {
   const left: Pt[] = [];
   const right: Pt[] = [];
   const n = pts.length;
@@ -136,7 +146,8 @@ const ribbon = (pts: Pt[], w0: number, w1: number): Pt[] => {
     const l = Math.hypot(dx, dy) || 1;
     const nx = -dy / l;
     const ny = dx / l;
-    const w = w0 + (w1 - w0) * (i / (n - 1));
+    const t = i / (n - 1);
+    const w = w0 + (w1 - w0) * t + flare * Math.max(0, 1 - t / span) ** 2.4;
     left.push([pts[i][0] + (nx * w) / 2, pts[i][1] + (ny * w) / 2]);
     right.push([pts[i][0] - (nx * w) / 2, pts[i][1] - (ny * w) / 2]);
   }
@@ -169,6 +180,31 @@ const circle = (cx: number, cy: number, r: number, n = 36): Pt[] => {
   for (let i = 0; i < n; i++) {
     const a = (i / n) * 2 * Math.PI;
     out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return out;
+};
+
+/**
+ * A hexagon about (cx, cy), `r` to its corners, flat sides at the top and
+ * bottom, each corner rounded into an arc of radius `round`.
+ */
+const roundedHexagon = (
+  cx: number,
+  cy: number,
+  r: number,
+  round: number,
+  perCorner = 8,
+): Pt[] => {
+  const out: Pt[] = [];
+  const inset = r - round / Math.cos(Math.PI / 6);
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI) / 3;
+    const ox = cx + inset * Math.cos(a);
+    const oy = cy + inset * Math.sin(a);
+    for (let j = 0; j <= perCorner; j++) {
+      const phi = a - Math.PI / 6 + (j / perCorner) * (Math.PI / 3);
+      out.push([ox + round * Math.cos(phi), oy + round * Math.sin(phi)]);
+    }
   }
   return out;
 };
@@ -238,27 +274,39 @@ export const guitarShape = (): Shape => {
 
 export const drumsShape = (): Shape => {
   const ink: Pt[][] = [];
-  const rings: number[][] = [];
-  // A cymbal: a thin tilted disc on a stem leaning out to the left.
-  ink.push(
-    ribbon(bezier([-96, 0], [-98, -70], [-120, -130], [-104, -192]), 4.5, 2.5),
-  );
-  const disc: Pt[] = [];
-  for (let i = 0; i < 40; i++) {
-    const a = (i / 40) * 2 * Math.PI;
-    const x = 40 * Math.cos(a);
-    const y = 5 * Math.sin(a);
-    const r = -0.25;
-    disc.push([
-      -104 + x * Math.cos(r) - y * Math.sin(r),
-      -194 + x * Math.sin(r) + y * Math.cos(r),
-    ]);
-  }
-  ink.push(disc);
+  // Every stand flares out at its foot like the trunk of a tree, rooted
+  // in the grass rather than stuck into it.
+  // Two cymbals on stems leaning out to the left of the drum, a tall one
+  // and a lower one on a nearly straight stem close by the drum, over its
+  // edge; each disc tipped down toward the drummer in the middle, the lower
+  // one a touch more.
+  const cymbal = (
+    foot: Pt,
+    c1: Pt,
+    c2: Pt,
+    top: Pt,
+    radius: number,
+    tilt: number,
+  ) => {
+    ink.push(ribbon(bezier(foot, c1, c2, top, 48), 6.5, 3.5, 30));
+    const disc: Pt[] = [];
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * 2 * Math.PI;
+      const x = radius * Math.cos(a);
+      const y = 5 * Math.sin(a);
+      disc.push([
+        top[0] + x * Math.cos(tilt) - y * Math.sin(tilt),
+        top[1] - 2 + x * Math.sin(tilt) + y * Math.cos(tilt),
+      ]);
+    }
+    ink.push(disc);
+  };
+  cymbal([-82, 0], [-84, -70], [-106, -130], [-90, -192], 40, 0.22);
+  cymbal([-56, 0], [-57, -50], [-59, -100], [-60, -148], 32, 0.34);
   // A stem rising behind the drum on the right and arching over it like a
-  // crook; three small drums hang from it, each with its rim.
+  // crook; three small drums hang from it, plain round bells.
   const crook = bezier([84, 0], [90, -150], [100, -262], [-6, -268], 60);
-  ink.push(ribbon(crook, 5, 2.5));
+  ink.push(ribbon(crook, 7, 3.5, 30, 0.22));
   for (const [t, r] of [
     [0.6, 19],
     [0.78, 15],
@@ -276,9 +324,9 @@ export const drumsShape = (): Shape => {
       ),
     );
     ink.push(circle(x + 2, y + 22 + r, r));
-    rings.push([x + 2, y + 22 + r, r * 0.66, 1.8]);
   }
-  // The big drum, plain, on two short legs.
+  // The big drum on two short legs: a hexagon with well-rounded corners,
+  // a flat side up and down, like a shell seen from the front.
   ink.push(
     ribbon(
       [
@@ -299,8 +347,8 @@ export const drumsShape = (): Shape => {
       3,
     ),
   );
-  ink.push(circle(0, -80, 64, 48));
-  return finish(ink, [], rings, 0, 110);
+  ink.push(roundedHexagon(0, -80, 68, 45));
+  return finish(ink, [], [], 0, 110);
 };
 
 /** The keys: a keyboard on legs and its stool, all drawn in Figma, standing as they are. */

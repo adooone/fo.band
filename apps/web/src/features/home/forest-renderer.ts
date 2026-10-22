@@ -109,6 +109,11 @@ const LAND_BOB = 0.05;
 /** How deep the instruments' feet sit in the ground, of their height. */
 const INSTRUMENT_SINK = 0.07;
 /**
+ * The keys sit deeper: the stool's legs end higher than the keyboard's (as
+ * drawn in Figma), so it would hang over the grass otherwise.
+ */
+const KEYS_SINK = 0.12;
+/**
  * The mark follows the horizon's move with a little inertia: its top is a
  * weight on a soft spring over its foot, so it squashes as the ground
  * pulls it up and stretches as the ground stops, then settles. The
@@ -2506,7 +2511,8 @@ export const createForestRenderer = (
       ctx.save();
       // Set a little into the ground, not perched on it.
       const ox = it.x;
-      const oy = groundAt(it.x) + INSTRUMENT_SINK * k;
+      const sink = it.kind === 'keys' ? KEYS_SINK : INSTRUMENT_SINK;
+      const oy = groundAt(it.x) + sink * k;
       ctx.translate(ox, oy);
       ctx.scale(k, k);
       ctx.fillStyle = ink;
