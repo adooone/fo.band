@@ -619,6 +619,10 @@ export const DEFAULT_MARK: MarkOptions = {
  */
 export const introTextAt = (mark: MarkOptions = DEFAULT_MARK): number =>
   DRAW_TOTAL + SPROUT_DELAY + O_RISE_AT * mark.sproutSeconds + 2;
+/** When, in the opening, the f starts to sprout (seconds), and how long it takes. */
+export const introSproutAt = (): number => DRAW_TOTAL + SPROUT_DELAY;
+export const introSproutSeconds = (mark: MarkOptions = DEFAULT_MARK): number =>
+  mark.sproutSeconds;
 
 /** The mark's outlines in viewBox units, evenly resampled so they can breathe. */
 const MARK_F: Outline = outlineOf(resample(flattenPath(LOGO_F), 260));

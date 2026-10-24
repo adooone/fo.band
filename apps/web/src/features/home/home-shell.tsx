@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { EdgeNav, pageOf, sectionOf, useDirections } from '@/features/nav';
 import { prefersReducedMotion } from '@/lib/ticker';
 import { BandName } from './band-name';
+import { FilmOverlay } from './film-overlay';
 import { Forest } from './forest';
 import {
   DEFAULT_MARK,
@@ -23,17 +24,22 @@ type Edge = 'paper' | 'ink' | null;
  * Safari tints its own bars from (it samples a fixed element hugging an
  * edge, else the page's background, and ignores `theme-color` since 26):
  * paper sky on top and ink land below; on the art page no strips, as its
- * white field meets the bottom and the trunk's ink the top left, and on a
- * phone, where that page stays all ink, ink at both. The colours switch at once, never in a transition
- * (Safari keeps whatever it sampled halfway through): on a phone once the
- * dive has filled the screen on the way in, elsewhere at once, and once it
- * has cleared on the way out.
+ * white field meets the bottom and the trunk's ink the top left. On a
+ * phone both edges are ink on every page (with the film over the picture
+ * a paper strip no longer matches the sky). The colours switch at once,
+ * never in a transition (Safari keeps whatever it sampled halfway
+ * through), the way back from art once the dive has cleared.
  */
+const isPhone = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(max-width: 639px)').matches;
+
 const useEdges = (page: PageId, ink = INK) => {
-  const [edges, setEdges] = useState<{ top: Edge; bottom: Edge }>({
-    top: 'paper',
-    bottom: 'ink',
-  });
+  // A phone is ink at both edges from the first paint.
+  const [edges, setEdges] = useState<{ top: Edge; bottom: Edge }>(() =>
+    isPhone() ? { top: 'ink', bottom: 'ink' } : { top: 'paper', bottom: 'ink' },
+  );
   const wasArt = useRef(false);
   useEffect(() => {
     const art = page === 'finds';
@@ -45,7 +51,9 @@ const useEdges = (page: PageId, ink = INK) => {
     const apply = (delay: number) => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        const dark = art && Boolean(phone?.matches);
+        // A phone is all ink at the edges on every page: with the film
+        // over the picture a paper strip no longer matches the sky.
+        const dark = Boolean(phone?.matches);
         // On the art page the top is ink on the left (the trunk) and
         // paper on the right: no strip fits, so none.
         setEdges(
@@ -53,7 +61,7 @@ const useEdges = (page: PageId, ink = INK) => {
             ? { top: 'ink', bottom: 'ink' }
             : { top: art ? null : 'paper', bottom: art ? null : 'ink' },
         );
-        document.documentElement.classList.toggle('art-dark', dark);
+        document.documentElement.classList.toggle('phone-dark', dark);
         document
           .querySelector('meta[name="theme-color"]')
           ?.setAttribute('content', dark ? ink : PAPER);
@@ -63,7 +71,7 @@ const useEdges = (page: PageId, ink = INK) => {
     // the screen (a paper strip would lie over the ink); on a phone they
     // turn ink once it has. Out of art they come back only once the
     // curtain has closed and the camera has risen out of the land.
-    apply(art ? (phone?.matches ? 1200 : 0) : wasArt.current ? 1900 : 0);
+    apply(phone?.matches ? 0 : art ? 0 : wasArt.current ? 1900 : 0);
     wasArt.current = art;
     const onChange = () => apply(0);
     phone?.addEventListener('change', onChange);
@@ -128,6 +136,7 @@ export const HomeShell = () => {
         <EdgeStrip at="top" colour={edges.top} />
         <EdgeStrip at="bottom" colour={edges.bottom} />
       </main>
+      <FilmOverlay firstPage={firstPage} reduced={reduced} />
     </IntroContext.Provider>
   );
 };

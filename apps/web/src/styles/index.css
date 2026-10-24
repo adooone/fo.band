@@ -160,8 +160,8 @@
       var(--color-ink) 50%
     );
   }
-  /* A phone on the art page: all ink, the browser's bars too. */
-  html.art-dark {
+  /* A phone: all ink past the page, the browser's bars too. */
+  html.phone-dark {
     background: var(--color-ink);
   }
   body {
@@ -199,4 +199,216 @@
   -webkit-text-stroke: 0.035em currentColor;
   paint-order: stroke fill;
   letter-spacing: 0.02em;
+}
+
+/*
+ * Old film over everything (`film-overlay.tsx`): the strengths, then the
+ * layers. The frame itself weaves a hair on `.home`, like film in a gate.
+ */
+:root {
+  --film-vignette: 0.2;
+  --film-grain: 0.09;
+  --film-warm: 0.06;
+  --film-weave: 3px;
+  --film-leak: 0.3;
+  --film-gate: 0.3;
+  --film-frame: 0.02;
+  --film-scratch: 0.09;
+}
+
+.film {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.film-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 62% at 50% 50%,
+    transparent 55%,
+    rgb(0 0 0 / var(--film-vignette)) 100%
+  );
+}
+
+.film-warm {
+  position: absolute;
+  inset: 0;
+  background: rgb(255 184 96 / var(--film-warm));
+  mix-blend-mode: multiply;
+}
+
+.film-grain {
+  position: absolute;
+  inset: -64px;
+  background-size: 192px 192px;
+  opacity: var(--film-grain);
+  mix-blend-mode: soft-light;
+  animation: film-grain 0.5s steps(1) infinite;
+  will-change: transform;
+}
+
+@keyframes film-grain {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-37px, 22px);
+  }
+  40% {
+    transform: translate(19px, -41px);
+  }
+  60% {
+    transform: translate(-11px, -27px);
+  }
+  80% {
+    transform: translate(43px, 13px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+.home {
+  animation: film-weave 7s ease-in-out infinite;
+}
+
+/* Scaled up a little as well (1.2%: over the weave even on a phone), so the edges never show past the frame as it moves. */
+@keyframes film-weave {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1.012);
+  }
+  27% {
+    transform: translate(var(--film-weave), calc(-0.6 * var(--film-weave)))
+      scale(1.012);
+  }
+  52% {
+    transform: translate(
+        calc(-0.8 * var(--film-weave)),
+        calc(0.7 * var(--film-weave))
+      )
+      scale(1.012);
+  }
+  78% {
+    transform: translate(calc(0.5 * var(--film-weave)), var(--film-weave))
+      scale(1.012);
+  }
+}
+
+/* Light leaks: a warm glow that passes through a corner now and then. */
+.film-leak {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(255 170 90 / var(--film-leak)) 0%,
+    rgb(255 120 60 / calc(0.5 * var(--film-leak))) 35%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.film-leak-a {
+  top: -35vmax;
+  right: -30vmax;
+  animation: film-leak-a 24s ease-in-out infinite;
+}
+
+.film-leak-b {
+  bottom: -40vmax;
+  left: -30vmax;
+  animation: film-leak-b 31s ease-in-out infinite 9s;
+}
+
+@keyframes film-leak-a {
+  0%,
+  75%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  84% {
+    opacity: 1;
+    transform: translate(-6vmax, 5vmax);
+  }
+  93% {
+    opacity: 0.4;
+    transform: translate(-12vmax, 9vmax);
+  }
+}
+
+@keyframes film-leak-b {
+  0%,
+  78%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  86% {
+    opacity: 0.8;
+    transform: translate(7vmax, -4vmax);
+  }
+  94% {
+    opacity: 0.3;
+    transform: translate(13vmax, -8vmax);
+  }
+}
+
+/* The exposure meter's circle in the middle of the viewfinder. */
+.film-meter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(72px, 13vmin, 150px);
+  height: clamp(72px, 13vmin, 150px);
+  border: 15px solid rgb(255 255 255 / var(--film-frame));
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* The wear of the glass: scratches and dust, dark on the paper and light on the ink. */
+.film-scratches {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: difference;
+  opacity: var(--film-scratch);
+}
+
+/*
+ * The viewfinder's gate: the frame's edge darkens softly all round, with
+ * no hard line anywhere.
+ */
+.film-gate {
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 48px rgb(0 0 0 / var(--film-gate)),
+    inset 0 0 8px rgb(0 0 0 / calc(0.4 * var(--film-gate)));
+}
+
+.film-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Bold and light, so they stand off the ink of the forest. */
+  color: rgb(255 255 255 / var(--film-frame));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .film-grain,
+  .film-leak,
+  .home {
+    animation: none;
+  }
 }

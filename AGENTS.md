@@ -26,6 +26,12 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   the far hills through it, never a white disc glowing on them), since what hangs over air cannot be part of the skyline (everything under it
   is ink); they stand in clearings the size of a tree, grow in the opening like the
   trees, sink for music and about and go with the camera into art,
+  `film-overlay.tsx` old film over everything (a vignette, grain that jitters, a warm
+  cast, light leaks through a corner now and then, a viewfinder's gate, corner marks
+  and the meter's circle; the frame weaves a hair on `.home`), CSS layers composited by
+  the GPU with the strengths in `--film-*` variables, plus the wear of the glass,
+  scratches and dust, another wear every visit, drawn once on a small canvas (grey through
+  `difference`: dark on paper, light on ink);
   `home-footer.tsx` the foot of the home page, `sky-title.tsx`
   a section's title, `home-shell.tsx` puts them together under every route.
   `nav/` holds the links and the phone's bottom nav. `src/lib/ticker.ts` is the one
