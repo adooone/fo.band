@@ -43,18 +43,14 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   snapping: `ease` (smootherstep) for anything that only moves. What grows or sinks
   has a body: it swells a little past its height from halfway on and comes back over
   the last third (`swell`, never `overshoot`'s late twitch), draws up a touch before
-  it sinks (`anticipate`); the camera breathes back before a move, runs a hair past
-  its mark and settles (`glide`, `CAMERA_GIVE`); and when something lands (the
-  land after about or art, the stump on music) the ground takes the knock, a ripple
-  running out along the skyline and the trees nearby bobbing (`LAND_*`). All of it
-  a few per cent, never a bounce. In the opening the poured land spills over the
-  horizon and draws back, less each time, as it reaches the hills (`SPILL_*`). The
-  one accent at a page change is the pencil line: a single stroke that traces the skyline by arc length
-  over the morph and fades behind itself, wandering a touch off the contour. On load
-  the pencil opens the piece instead, while the page loads: a blank sheet, the pencil
+  it sinks (`anticipate`); the camera's moves (about, the dive into art) ease in and
+  out with no give, and nothing knocks the ground when it lands. All of it
+  a few per cent, never a bounce. In the opening the poured land sloshes but never
+  spills over the hills. The
+  pencil line appears only on load, opening the piece while the page loads: a blank sheet, the pencil
   draws the skyline, hills and trees, left to right, while the land is poured in from
-  below the screen like water into a glass, its surface sloshing side to side and
-  bouncing until it settles into the hills; then the trees grow into the drawing from the middle outward as the line
+  below the screen like water into a glass, its surface sloshing side to side
+  until it settles into the hills; then the trees grow into the drawing from the middle outward as the line
   fades and the clouds swell one by one; the f sprouts and the o rises; last, with
   the text, the far hills rise behind the land (`drawOpening`, `DRAW_*`, `SLOSH*`, `RIPPLE*`). The text waits for the fonts and the
   opening (`introTextAt`), then comes in group by group: titles, paths, the foot
@@ -102,9 +98,8 @@ mark (an f sprout and an o sun) growing out of the clearing. Talk to the user in
   sky and a few birds cross it now and then, and the page looks past the forest
   with the pointer (`setPointer`, `LOOK_*`, `parallax`): the sky layers and the land
   shift the other way (the near clouds the near clouds some 60 px at the edge of the screen, the land under 10), nearer ones more, following with a lag and easing
-  back to the middle on the way to a section; a mouse or a pen only, never a finger. The pencil
-  keeps its screen width whatever the camera does, and stays away on about and
-  finds. Every change sends a gust the way of travel. The skyline
+  back to the middle on the way to a section; a mouse or a pen only, never a finger. Page changes
+  have no pencil line. Every change sends a gust the way of travel. The skyline
   is one polyline, and every tree has a form per page with the same point count. The
   f of the mark is a tree in that line too (kind `mark`, finer point count): its form
   on the home and about pages is the sprout's outline cut at the ground, written

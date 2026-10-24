@@ -79,98 +79,37 @@ export const leafShape = (
   return out;
 };
 
-export type MushroomKind = 'bolete' | 'porcini' | 'bell' | 'agaric' | 'mycena';
-
 /**
- * A mushroom for the forest floor around the record player, one tall: a
- * stem that flares a little at the ground, the cap's underside reaching
- * out to its rim, and the dome over the top. Boletes are stout and round,
- * porcini sit a thick round cap on a fat stem that bulges low down, bells have a tall pointed cap, agarics a round cap on a stem with a skirt, mycenas
- * are tiny bells on long thin stems that grow in bunches. The outline is
- * open, from the left foot over the top to the right foot, `dx` across.
+ * A honey mushroom for the forest floor around the record player, one
+ * tall: a long thin stem that flares a little at the ground and a small
+ * domed cap whose edge curls under the rim. They grow in bunches. The
+ * outline is open, from the left foot over the top to the right foot,
+ * `dx` across.
  */
-export const mushroomShape = (
-  seed: number,
-  height = 0.5,
-  kind?: MushroomKind,
-  dx = 0,
-): number[] => {
+export const mushroomShape = (seed: number, height = 0.5, dx = 0): number[] => {
   const rng = mulberry32(Math.floor(seed * 7919) + 23);
-  const pick: MushroomKind[] = ['bolete', 'porcini', 'bell', 'agaric'];
-  const k = kind ?? pick[Math.floor(rng() * pick.length)];
   const lean = (rng() - 0.5) * 0.1 * height;
-  // `dome` shapes the top (1 a half ellipse, less a flatter cushion, more
-  // a bell); `under` is how far the cap's edge curls under the rim, as a
-  // share of the cap's height: thick on a porcini, thin on a bell.
+  // `dome` shapes the top (1 a half ellipse, more a bell); `under` is how
+  // far the cap's edge curls under the rim, as a share of the cap's height.
   const shape = {
-    bolete: {
-      stem: 0.5,
-      stemW: 0.13,
-      capW: 0.38,
-      dome: 0.95,
-      under: 0.3,
-      skirt: 0,
-    },
-    porcini: {
-      stem: 0.54,
-      stemW: 0.14,
-      capW: 0.44,
-      dome: 0.85,
-      under: 0.35,
-      skirt: 0,
-    },
-    bell: {
-      stem: 0.5,
-      stemW: 0.07,
-      capW: 0.26,
-      dome: 1.7,
-      under: 0.12,
-      skirt: 0,
-    },
-    agaric: {
-      stem: 0.55,
-      stemW: 0.09,
-      capW: 0.37,
-      dome: 1.1,
-      under: 0.2,
-      skirt: 0.72,
-    },
-    mycena: {
-      stem: 0.74,
-      stemW: 0.035,
-      capW: 0.16,
-      dome: 1.4,
-      under: 0.12,
-      skirt: 0,
-    },
-  }[k];
+    stem: 0.74,
+    stemW: 0.035,
+    capW: 0.16,
+    dome: 1.4,
+    under: 0.12,
+  };
   const stemH = shape.stem * height;
   const capH = height - stemH;
   const sw = shape.stemW * height;
   const cw = shape.capW * height * (0.9 + 0.2 * rng());
   const out: number[] = [];
   const push = (x: number, y: number) => out.push(x + dx, y);
-  const skirtY = shape.skirt * stemH;
-  // The stem's left side from the foot up, as (height, half-width) shares;
-  // a porcini's swells into a round belly low down.
-  const stem: [number, number][] =
-    k === 'porcini'
-      ? Array.from({ length: 7 }, (_, i) => {
-          const y = (i / 7) * 0.9;
-          return [y, 0.8 + 0.6 * Math.exp(-(((y - 0.3) / 0.35) ** 2))];
-        })
-      : [
-          [0, 1.25],
-          [0.35, 1],
-        ];
+  // The stem's left side from the foot up, as (height, half-width) shares.
+  const stem: [number, number][] = [
+    [0, 1.25],
+    [0.35, 1],
+  ];
   for (const [y, w] of stem) push(-sw * w, -stemH * y);
-  if (shape.skirt > 0) {
-    // The skirt: a little collar hanging from the stem.
-    push(-sw * 0.95, -skirtY + 0.05 * height);
-    push(-sw * 2.1 + lean * 0.5, -skirtY + 0.02 * height);
-    push(-sw * 1.6 + lean * 0.5, -skirtY - 0.03 * height);
-    push(-sw * 0.9 + lean * 0.6, -skirtY - 0.04 * height);
-  }
   push(-sw * 0.85 + lean, -stemH * 0.95);
   // The cap: up and over the top from edge to edge, curling a little under
   // each so the edge is round, never a corner; the underside runs straight
@@ -184,50 +123,24 @@ export const mushroomShape = (
     push(cw * Math.cos(a) + lean, -stemH - capH * y);
   }
   push(sw * 0.85 + lean, -stemH * 0.95);
-  if (shape.skirt > 0) {
-    push(sw * 0.9 + lean * 0.6, -skirtY - 0.04 * height);
-    push(sw * 1.6 + lean * 0.5, -skirtY - 0.03 * height);
-    push(sw * 2.1 + lean * 0.5, -skirtY + 0.02 * height);
-    push(sw * 0.95, -skirtY + 0.05 * height);
-  }
   for (const [y, w] of stem.toReversed()) push(sw * w, -stemH * y);
   return out;
 };
 
 /**
- * What grows where a tree stood on the music page: a mushroom, a pair, or
- * a bunch of mycenas on thin stems, side by side without overlapping, the
- * whole group no wider than `width` (local units of the tree, 1 = its
- * height) and set a little off its centre. One open outline from the left
- * foot to the right, the ground between the mushrooms.
+ * What grows where a tree stood on the music page: a bunch of honey
+ * mushrooms on thin stems, side by side without overlapping, the whole
+ * bunch no wider than `width` (local units of the tree, 1 = its height)
+ * and set a little off its centre. One open outline from the left foot to
+ * the right, the ground between the mushrooms.
  */
 export const mushroomGroup = (seed: number, width: number): number[] => {
   const rng = mulberry32(Math.floor(seed * 7919) + 29);
-  const roll = rng();
-  type Member = { kind?: MushroomKind; h: number };
-  let members: Member[];
-  if (roll < 0.34) {
-    members = [{ h: 0.55 + 0.25 * rng() }];
-  } else if (roll < 0.62) {
-    const big = 0.55 + 0.2 * rng();
-    members = [{ h: big }, { h: big * (0.45 + 0.25 * rng()) }];
-    if (rng() < 0.5) members.reverse();
-  } else if (roll < 0.86) {
-    const count = 3 + Math.floor(rng() * 3);
-    members = [];
-    for (let i = 0; i < count; i++) {
-      members.push({ kind: 'mycena', h: 0.3 + 0.22 * rng() });
-    }
-  } else {
-    members = [
-      { kind: 'agaric', h: 0.65 + 0.12 * rng() },
-      { kind: 'mycena', h: 0.26 + 0.1 * rng() },
-      { kind: 'mycena', h: 0.3 + 0.1 * rng() },
-    ];
-  }
+  const count = 2 + Math.floor(rng() * 4);
+  const members: { h: number }[] = [];
+  for (let i = 0; i < count; i++) members.push({ h: 0.3 + 0.25 * rng() });
   // Cap widths set the spacing: caps nearly touch, never overlap.
-  const capW = (m: Member) =>
-    (m.kind === 'mycena' ? 0.16 : m.kind === 'agaric' ? 0.36 : 0.4) * m.h;
+  const capW = (m: { h: number }) => 0.16 * m.h;
   const xs: number[] = [];
   let x = 0;
   members.forEach((m, i) => {
@@ -241,7 +154,7 @@ export const mushroomGroup = (seed: number, width: number): number[] => {
   const out: number[] = [];
   members.forEach((m, i) => {
     const dx = (xs[i] - centre) * fit + shift;
-    const shape = mushroomShape(seed + i * 17, m.h * fit, m.kind, dx);
+    const shape = mushroomShape(seed + i * 17, m.h * fit, dx);
     if (i > 0) out.push((out[out.length - 2] + shape[0]) / 2, 0);
     out.push(...shape);
   });

@@ -15,8 +15,8 @@ type SkyTitleProps = {
 export const TITLE_DELAY: Record<PageId, number> = {
   home: 0.5,
   music: 0.5,
-  about: 1,
-  finds: 1.8,
+  about: 0.5,
+  finds: 1.1,
 };
 
 export const SkyTitle = ({ title, page }: SkyTitleProps) => {

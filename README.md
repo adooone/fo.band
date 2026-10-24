@@ -52,9 +52,7 @@ right to «Art», where the camera
 dives into the land through the trees until the screen is all ink, and the ink's edge is drawn in from
 the right into a tree trunk on the left, leaving a white field for the work. The f is
 part of the skyline, so it morphs like a tree: on music it sinks into the ground and
-the stump grows up in its place, while the o sinks behind the horizon. The way home
-from music is marked by a pencil line that traces the skyline once and fades, as if the new picture
-were being drawn over the old.
+the stump grows up in its place, while the o sinks behind the horizon.
 
 Everything animated shares one `requestAnimationFrame` loop (`src/lib/ticker.ts`) and a
 clock clamped per frame, so a background tab or a long sleep never makes it race.

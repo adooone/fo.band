@@ -1,13 +1,5 @@
 import { createNoise2D } from 'simplex-noise';
-import {
-  anticipate,
-  clamp01,
-  ease,
-  glide,
-  glideAt,
-  swellAt,
-  swell as swellPast,
-} from './easing';
+import { anticipate, clamp01, ease, swell as swellPast } from './easing';
 import {
   flatShape,
   leafShape,
@@ -71,22 +63,16 @@ export type PageId = 'home' | 'music' | 'finds' | 'about';
  * back: the horizon is drawn up until it is this far down the screen, a
  * thin strip of sky over the land, the left half a little ahead of the
  * right; the mark rides up on it in the middle, shrinking to this scale.
- * The move eases, runs a little past and settles (`CAMERA_GIVE`); coming
- * home the land lands the same way and the forest grows back.
+ * The move eases in and out, no give; coming home the land comes down the
+ * same way and the forest grows back.
  */
-const ABOUT_HIDE_SECONDS = 0.45;
-const ABOUT_LEAD = 0.4;
+const ABOUT_HIDE_SECONDS = 0.3;
+const ABOUT_LEAD = 0.2;
 const ABOUT_HORIZON = 0.12;
-const ABOUT_SECONDS = 1.1;
+const ABOUT_SECONDS = 0.6;
 /** Share of the rise by which the right edge trails the left. */
 const ABOUT_UNEVEN = 0.25;
 const ABOUT_MARK = 0.22;
-/**
- * How far the camera's moves run past their mark before settling (the
- * `c1` of `glide`): about a hundredth of the move, felt more than seen.
- * The dive draws back by the same before it goes.
- */
-const CAMERA_GIVE = 0.3;
 /**
  * How far things run past their size as they grow (the `c` of `swell`: a
  * slow swell from halfway on, back over the last third, never a twitch):
@@ -97,15 +83,6 @@ const CAMERA_GIVE = 0.3;
 const GROW_SWELL = 1.8;
 const MUSHROOM_SWELL = 2;
 const SINK_DRAW = 0.7;
-/**
- * When something lands (the land after about or art, the stump on music)
- * the ground takes the knock: a ripple runs out from the spot along the
- * skyline, this high (of the height) and over this long, and the trees
- * near it bob, by this much of their height.
- */
-const LAND_RIPPLE = 0.012;
-const LAND_SECONDS = 1.6;
-const LAND_BOB = 0.05;
 /** How deep the instruments' feet sit in the ground, of their height. */
 const INSTRUMENT_SINK = 0.07;
 /**
@@ -158,10 +135,10 @@ export const FINDS_STRIP = 1 / 6;
  * this far (of the height) under the horizon, until the screen is all
  * ink; then the ink's edge is drawn in from the right of the screen into
  * the trunk's edge, the top a little ahead of the bottom. The way back
- * unwinds in the same order, the camera landing with a little give.
+ * unwinds in the same order.
  */
 const MUSIC_SINK_SECONDS = 0.45;
-const DIVE_SECONDS = 0.85;
+const DIVE_SECONDS = 0.8;
 const DIVE_DEPTH = 0.08;
 const DIVE_ZOOM = 14;
 /**
@@ -170,7 +147,7 @@ const DIVE_ZOOM = 14;
  * between them; the gap closes as the screen fills.
  */
 const DIVE_LEAD = 0.4;
-const CURTAIN_SECONDS = 0.9;
+const CURTAIN_SECONDS = 0.4;
 /** Narrower than this (CSS px, Tailwind's `sm`), the art page stays all ink. */
 const PHONE_WIDTH = 640;
 /** Share of the pull by which the bottom of the edge trails the top. */
@@ -191,21 +168,14 @@ const RISE_SETTLE = 0.5;
 /**
  * The land fills the screen like water poured into a glass: its surface
  * sloshes side to side as it rises (one side higher, then the other), with
- * a quicker ripple on top, and settles into the hills as it arrives. How
- * high the slosh and the ripple reach at their most (of the height), and
- * how fast they swing (Hz).
+ * a quicker ripple on top, and settles into the hills as it arrives, never
+ * running over them. How high the slosh and the ripple reach at their most
+ * (of the height), and how fast they swing (Hz).
  */
 const SLOSH = 0.09;
 const SLOSH_HZ = 0.55;
 const RIPPLE = 0.025;
 const RIPPLE_HZ = 1.15;
-/**
- * As the land reaches the hills (from this share of the pour) it runs a
- * little over the horizon, this high (of the height) at most, and comes
- * back over what is left of the pour: one swell, no spring.
- */
-const SPILL_FROM = 0.72;
-const SPILL = 0.015;
 const DRAW_TOTAL = DRAW_WAIT + DRAW_SECONDS + RISE_SETTLE;
 /**
  * The pencil's drawing holds this long after the land has risen, then fades
@@ -217,8 +187,6 @@ const OPENING_FADE = 2.6;
 const CLOUD_SECONDS = 3.5;
 /** How long the far hills take to rise, with the text. */
 const DAWN_SECONDS = 1.6;
-/** The skyline takes this much of the pencil's run; the rest is the o. */
-const PENCIL_MEET = 0.86;
 /**
  * Page changes are quick and organic: the scene draws in or turns, and
  * every point of every outline starts on its own beat (tops and tips
@@ -281,13 +249,10 @@ export type ForestOptions = {
   farDip: number;
   farTrees: number;
   /**
-   * The pencil that traces the skyline on every change: how long it takes
-   * to cross the line, how long its trail is (of the line), how far it
-   * wanders off the silhouette (in u) over how long a wave (in u), and how
-   * thick it draws (in u).
+   * The pencil that draws the skyline in the opening: how far it wanders
+   * off the silhouette (in u) over how long a wave (in u), and how thick it
+   * draws (in u).
    */
-  pencilSeconds: number;
-  pencilTrail: number;
   pencilWander: number;
   pencilWave: number;
   pencilWidth: number;
@@ -344,8 +309,6 @@ export const DEFAULT_OPTIONS: ForestOptions = {
   farHeight: 0.04,
   farDip: 0.025,
   farTrees: 0.35,
-  pencilSeconds: 5,
-  pencilTrail: 0.6,
   pencilWander: 4,
   pencilWave: 600,
   pencilWidth: 2,
@@ -752,7 +715,6 @@ export const createForestRenderer = (
   const markFlat = resampleOpen(flatShape(0.2), MARK_POINTS);
   /** The o as drawn this frame, on screen, for the pencil to trace. */
   const markO = new Float64Array(MARK_O.n * 2);
-  let markODrawn = false;
   /** One tree's current outline, local units. */
   const shape = new Float64Array(MARK_POINTS * 2);
   /** The whole skyline for one frame: ground and trees as one line. */
@@ -816,15 +778,6 @@ export const createForestRenderer = (
   const musical = { from: 0, to: 0, start: -1e9 };
   const dived = { from: 0, to: 0, start: -1e9 };
   const leafy = { from: 0, to: 0, start: -1e9 };
-  /** When the pencil last set off: on a page change, or once the intro has grown. */
-  // The pencil's first stroke is the horizon itself (see the opening);
-  // it traces the skyline only on page changes.
-  let pencilStart = -1e9;
-  /**
-   * The last landing: when, where (world x), how wide its knock spreads
-   * and how hard (1 is the land itself coming down).
-   */
-  const landing = { at: -1e9, x: 0, spread: 1, amp: 1 };
   /** When the birds last took off, and the tree tops they take off from (world px). */
   let birdsLaunch = -1e9;
   /** The mark's squash (−) and stretch (+), its rate, and the foot's last place and speed. */
@@ -1290,21 +1243,10 @@ export const createForestRenderer = (
 
   const linear = (p: number) => p;
   /** Each stage's value now; the uneven ones run linear and ease per point. */
-  /** The camera's move: a breath back, the run, past the mark and settled. */
-  const cameraSettle = (p: number) => glide(p, CAMERA_GIVE);
-  /** A breath back, then away: into the dive. */
-  const cameraLeap = (p: number) => anticipate(p, CAMERA_GIVE);
   const stageAt = {
-    rooted: (t: number) => level(rooted, t, ABOUT_SECONDS, cameraSettle),
+    rooted: (t: number) => level(rooted, t, ABOUT_SECONDS, linear),
     musical: (t: number) => level(musical, t, SCENE_SECONDS),
-    // In, it draws back a breath and leaps; out, it lands and settles.
-    dived: (t: number) =>
-      level(
-        dived,
-        t,
-        DIVE_SECONDS,
-        dived.to > dived.from ? cameraLeap : cameraSettle,
-      ),
+    dived: (t: number) => level(dived, t, DIVE_SECONDS),
     leafy: (t: number) => level(leafy, t, CURTAIN_SECONDS, linear),
   };
 
@@ -1349,23 +1291,14 @@ export const createForestRenderer = (
     // Leaving, the page's own stages unwind first, in reverse: on finds the
     // trunk's edge goes back off the right of the screen and the camera
     // rises out of the land; on about the horizon comes back down; on
-    // music the scene draws back. The land coming down lands with a
-    // knock.
+    // music the scene draws back.
     let out = 0;
-    const lands = (start: number, seconds: number) => {
-      landing.at = start + seconds * glideAt(CAMERA_GIVE);
-      landing.x = W / 2;
-      landing.spread = 2 * W;
-      landing.amp = 1;
-    };
     if (page === 'finds') {
       leafy.start = now;
       dived.start = leafy.start + (leafy.from > 0 ? CURTAIN_SECONDS : 0);
       out = dived.start - now + (dived.from > 0 ? DIVE_SECONDS : 0);
-      if (dived.from > 0) lands(dived.start, DIVE_SECONDS);
     } else if (page === 'about') {
       out = rooted.from > 0 ? ABOUT_SECONDS * 0.8 : 0;
-      if (rooted.from > 0) lands(now, ABOUT_SECONDS);
     } else if (page === 'music') {
       musical.start = now + 0.1;
       out = 0.5 * musical.from;
@@ -1390,20 +1323,11 @@ export const createForestRenderer = (
     // Leaving, the stump sinks as the scene draws back, the trees turn in
     // the same wave and the f grows back last.
     if (next === 'music') musical.start = now + out + 0.2;
-    // The pencil traces the change home from music; into music the scene
-    // drawing in is enough.
-    if (next !== 'music') pencilStart = now;
     if (next === 'about') birdsLaunch = now + 0.1;
     // The forest stirs in the direction of travel.
     gust(next === 'music' || page === 'finds' ? 1 : -1);
     const toMusic = next === 'music';
     const fromMusic = page === 'music';
-    const stumpLands = (start: number, seconds: number) => {
-      landing.at = start + seconds * swellAt(GROW_SWELL);
-      landing.x = W / 2;
-      landing.spread = 0.6 * W;
-      landing.amp = 0.5;
-    };
     for (const tree of trees) {
       const snapshot = new Float64Array(tree.n * 2);
       snapshot.set(formAt(tree, now, snapshot));
@@ -1424,7 +1348,6 @@ export const createForestRenderer = (
         if (toMusic) {
           wait = out + 0.45;
           seconds = 0.9;
-          stumpLands(now + wait + jitter, seconds);
         } else if (fromMusic) seconds = 0.5;
       } else if (toMusic || fromMusic) {
         tree.twoStage = true;
@@ -1442,8 +1365,9 @@ export const createForestRenderer = (
       tree.seconds = seconds;
       tree.start = now + wait + jitter;
     }
-    // The instruments go with the trees: into the ground for music and
-    // about, back up once home, with the camera for finds.
+    // The instruments go into the ground for music and back up once home;
+    // they stay on about (riding the horizon up) and go with the camera
+    // for finds.
     for (const it of instruments) {
       const d = Math.abs(it.x - W / 2) / W;
       const standing = instrumentsStand(next) ? 1 : 0;
@@ -1461,8 +1385,12 @@ export const createForestRenderer = (
     }
     page = next;
   };
-  /** The instruments stand on the home page and through the dive into art. */
-  const instrumentsStand = (p: PageId) => p === 'home' || p === 'finds';
+  /**
+   * The instruments stand on the home page, ride the horizon up into the
+   * strip of sky on about, and go with the dive into art.
+   */
+  const instrumentsStand = (p: PageId) =>
+    p === 'home' || p === 'about' || p === 'finds';
   /** How far an instrument is up: drawing up a touch before it sinks, swelling past as it grows. */
   const showAt = (it: Instrument, t: number) => {
     const { from, to, start, seconds } = it.show;
@@ -1616,8 +1544,6 @@ export const createForestRenderer = (
     // the horizon runs ahead of the right (and, coming back, goes down
     // last). Everything below is drawn in the forest's own coordinates
     // through this.
-    // The dive's curve already breathes back and lands with give: the
-    // zoom follows it straight (past 1 it is only deeper in the ink).
     const zoom =
       (1 + (MUSIC_ZOOM - 1) * m) * Math.exp(Math.log(DIVE_ZOOM) * dive);
     const lead = DIVE_LEAD * H * Math.sin(Math.PI * ease(clamp01(dive)));
@@ -1653,12 +1579,7 @@ export const createForestRenderer = (
     const grow = ease(dawnRaw);
     const cloudRaw = opening ? clamp01(intro / CLOUD_SECONDS) : 1;
     const dawn = opening ? 1 : swell;
-    /**
-     * How far the horizon has been drawn up for about at a world x: the
-     * left a touch ahead; the camera's give past the mark (or, coming
-     * down, past the ground) is the same everywhere.
-     */
-    const give = rise > 1 ? rise - 1 : rise < 0 ? rise : 0;
+    /** How far the horizon has been drawn up for about at a world x: the left a touch ahead. */
     const risen = (x: number) =>
       rise === 0
         ? 0
@@ -1666,32 +1587,11 @@ export const createForestRenderer = (
             clamp01(
               rise * (1 + ABOUT_UNEVEN) - ABOUT_UNEVEN * ease(clamp01(x / W)),
             ),
-          ) + give;
-    // The knock of a landing: a ripple running out along the skyline from
-    // the spot, dying down.
-    const landAge = time - landing.at;
-    const knocked = landAge > 0 && landAge < LAND_SECONDS;
-    const knock = knocked
-      ? landing.amp * Math.exp(-2.5 * landAge) * (1 - landAge / LAND_SECONDS)
-      : 0;
-    const rippleAt = (x: number) => {
-      const d = Math.abs(x - landing.x);
-      return (
-        LAND_RIPPLE *
-        H *
-        knock *
-        bump(d / landing.spread) *
-        Math.sin(TAU * (1.4 * landAge - d / (0.8 * W)))
-      );
-    };
+          );
     /** Ground at a world x. */
     const groundAt = (x: number) => {
       const level0 = opts.horizon * H;
-      const y =
-        level0 +
-        (groundRest(x) - level0) * swell +
-        breath +
-        (knocked ? rippleAt(x) : 0);
+      const y = level0 + (groundRest(x) - level0) * swell + breath;
       const ahead =
         lead > 0 ? (lead * (1 - ease(clamp01((e + zoom * x) / W)))) / zoom : 0;
       return y + (ABOUT_HORIZON * H - y) * risen(x) - ahead;
@@ -1880,15 +1780,8 @@ export const createForestRenderer = (
             tree.h;
       const { mound } = tree;
       // On about the whole forest shrinks with the mark as the camera
-      // draws back; a landing nearby makes a tree bob.
-      const bob =
-        knocked && !mark && tree.kind !== 'stump'
-          ? LAND_BOB *
-            knock *
-            bump((bx - landing.x) / landing.spread) *
-            Math.sin(TAU * 1.8 * landAge)
-          : 0;
-      const h = tree.h * mk * (1 + bob);
+      // draws back.
+      const h = tree.h * mk;
       const form = formAt(tree, time, shape);
       // Something that is not there on this page (a flat form) leaves the
       // ground alone: no mound on load, nothing spliced in.
@@ -2056,7 +1949,7 @@ export const createForestRenderer = (
       ctx.fill();
     };
     if (dive < 0.999) {
-      drawInstruments(groundAt, knocked, knock, landAge, paintBehind);
+      drawInstruments(groundAt, paintBehind);
     }
     drawRecordPlayer(time, groundAt);
     // Off the home page the o sinks into the ground: early on the way in,
@@ -2073,7 +1966,6 @@ export const createForestRenderer = (
       groundAt,
       { x: markX, y: groundAt(markX), sx, sy },
     );
-    drawPencil(time, n, zoom);
     ctx.setTransform(dprScale, 0, 0, dprScale, 0, 0);
     drawBirds(time, (x: number, y: number) => ({
       x: e + zoom * x,
@@ -2106,15 +1998,14 @@ export const createForestRenderer = (
     // The land poured in like water: a level rising from below the screen,
     // its surface sloshing in the glass of the screen (the first mode tips
     // it, left up while right is down, then back; the second ripples it),
-    // the slosh fading as it fills; over the last stretch the surface
-    // settles into the hills.
+    // the slosh dying down well before the land reaches the hills; over the
+    // last stretch the surface settles into them, never running over.
     const below = 1.05 * H;
     // Poured at a steady rate that eases off as the glass fills.
     const poured = clamp01(
       (d - DRAW_WAIT * 0.5) / (DRAW_TOTAL - DRAW_WAIT * 0.5),
     );
     const p = 1 - (1 - poured) ** 2;
-    // The slosh dies down well before the land reaches the hills.
     const swing = Math.min(1, poured * 6) * (1 - poured) ** 2.5 * H;
     const level =
       below +
@@ -2123,11 +2014,6 @@ export const createForestRenderer = (
     const tip = SLOSH * swing * Math.sin(TAU * SLOSH_HZ * d + 0.3);
     const ripple = RIPPLE * swing * Math.sin(TAU * RIPPLE_HZ * d + 1.7);
     const settle = ease(clamp01((p - 0.65) / 0.35));
-    // Reaching the hills the land runs a little over the horizon and comes
-    // back, one slow swell, most in the middle where it is poured and a
-    // touch uneven along; level again by the time it has filled.
-    const q = clamp01((poured - SPILL_FROM) / (1 - SPILL_FROM));
-    const spill = q > 0 && q < 1 ? SPILL * H * Math.sin(Math.PI * q) ** 2 : 0;
     const xa = line[0];
     const xb = line[2 * (n - 1)];
     ctx.moveTo(xa, deep);
@@ -2139,12 +2025,7 @@ export const createForestRenderer = (
         level -
         tip * Math.cos((Math.PI * x) / W) -
         ripple * Math.cos((TAU * x) / W);
-      const y =
-        surface +
-        (groundLine(x) - surface) * settle -
-        spill *
-          (0.6 + 0.4 * Math.cos((Math.PI * (x - W / 2)) / W)) *
-          (1 + 0.2 * Math.sin((2.3 * Math.PI * x) / W + 0.4));
+      const y = surface + (groundLine(x) - surface) * settle;
       ctx.lineTo(x, Math.min(below, y));
     }
     ctx.lineTo(xb, deep);
@@ -2320,130 +2201,6 @@ export const createForestRenderer = (
   };
 
   /**
-   * A pencil traces the picture whenever the forest changes: on load, once
-   * the line has grown, and on every page change. Its tip runs the whole
-   * skyline (the f in it) from left to right, then round the o, while the
-   * shapes are still morphing, so it passes along the outlines of what was
-   * and what will be, wandering off the line; the short trail behind it
-   * fades out.
-   */
-  const drawPencil = (time: number, n: number, zoom: number) => {
-    // Into or out of about and finds the camera's move is the whole event.
-    if (rooted.to > 0 || rooted.from > 0 || dived.to > 0 || dived.from > 0) {
-      return;
-    }
-    // Drawn in the forest's coordinates but the same width on screen
-    // whatever the camera does.
-    const uz = u / zoom;
-    const p = (time - pencilStart) / opts.pencilSeconds;
-    if (p <= 0 || p >= 1 + opts.pencilTrail || n < 3) return;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = PENCIL;
-    ctx.lineWidth = opts.pencilWidth * uz;
-    // Once drawn, the whole line fades out together.
-    const end = p < 1 ? 1 : 1 - (p - 1) / opts.pencilTrail;
-    /** One stroke of the line, wandering a hand's width off it. */
-    const stroke = (
-      x0: number,
-      y0: number,
-      x1: number,
-      y1: number,
-      at: number,
-      alpha: number,
-    ) => {
-      const len = Math.hypot(x1 - x0, y1 - y0) || 1;
-      const nx = -(y1 - y0) / len;
-      const ny = (x1 - x0) / len;
-      const w =
-        opts.pencilWander * uz * noise(at / (opts.pencilWave * uz), time * 0.3);
-      ctx.globalAlpha = alpha * end * 0.9;
-      ctx.beginPath();
-      ctx.moveTo(x0 + nx * w, y0 + ny * w);
-      ctx.lineTo(x1 + nx * w, y1 + ny * w);
-      ctx.stroke();
-    };
-
-    // The skyline, left to right, the tip trailing a short fading tail.
-    let total = 0;
-    for (let k = 1; k < n; k++) {
-      total += Math.hypot(
-        line[2 * k] - line[2 * k - 2],
-        line[2 * k + 1] - line[2 * k - 1],
-      );
-    }
-    // Nearly even along the line, easing only a touch at the ends: with a
-    // full ease the middle flies by at twice the pace.
-    const along = clamp01(p / PENCIL_MEET);
-    const headSky = total * (0.75 * along + 0.25 * ease(along));
-    const trail = total * opts.pencilTrail;
-    let s = 0;
-    for (let k = 1; k < n; k++) {
-      const x0 = line[2 * k - 2];
-      const y0 = line[2 * k - 1];
-      const x1 = line[2 * k];
-      const y1 = line[2 * k + 1];
-      const s1 = s + Math.hypot(x1 - x0, y1 - y0);
-      if (s1 <= headSky && s1 >= headSky - trail) {
-        stroke(
-          x0,
-          y0,
-          x1,
-          y1,
-          s1,
-          ease(clamp01((s1 - (headSky - trail)) / trail)),
-        );
-      }
-      s = s1;
-      if (s > headSky) break;
-    }
-
-    // Then the o: round it in one go.
-    const q = ease(
-      clamp01((p - PENCIL_MEET + 0.06) / (1 - PENCIL_MEET + 0.06)),
-    );
-    if (!markODrawn || q <= 0) {
-      ctx.globalAlpha = 1;
-      return;
-    }
-    const m = MARK_O.n;
-    let loop = 0;
-    for (let k = 1; k <= m; k++) {
-      const a = k - 1;
-      const b = k % m;
-      loop += Math.hypot(
-        markO[2 * b] - markO[2 * a],
-        markO[2 * b + 1] - markO[2 * a + 1],
-      );
-    }
-    const head = loop * q;
-    const tail = head - loop * 0.45;
-    s = 0;
-    for (let k = 1; k <= m; k++) {
-      const a = k - 1;
-      const b = k % m;
-      const x0 = markO[2 * a];
-      const y0 = markO[2 * a + 1];
-      const x1 = markO[2 * b];
-      const y1 = markO[2 * b + 1];
-      const s1 = s + Math.hypot(x1 - x0, y1 - y0);
-      if (s1 >= tail && s <= head) {
-        stroke(
-          x0,
-          y0,
-          x1,
-          y1,
-          total + s1,
-          ease(clamp01((s1 - tail) / (loop * 0.45))),
-        );
-      }
-      s = s1;
-      if (s > head) break;
-    }
-    ctx.globalAlpha = 1;
-  };
-
-  /**
    * The record player, after the back of «Songs from the Wood»: there is no
    * record, the stump's own cut face is the disc. A paper face inside a rim
    * of bark, with growth rings drawn by hand that turn slowly like a record,
@@ -2472,14 +2229,11 @@ export const createForestRenderer = (
   /**
    * The orchestra over the land: each instrument at its foot on the
    * ground, scaled by how far it has grown (in the opening, like a tree)
-   * and how far it stands on this page, bobbing with a landing nearby;
+   * and how far it stands on this page;
    * ink outlines, then the cut-outs and rims in paper.
    */
   const drawInstruments = (
     groundAt: (x: number) => number,
-    knocked: boolean,
-    knock: number,
-    landAge: number,
     paintBehind: (x0: number, x1: number, y0: number, y1: number) => void,
   ) => {
     /** Paints the background into the current path, clipped: a true cut-out. */
@@ -2500,13 +2254,7 @@ export const createForestRenderer = (
       ctx.restore();
     };
     for (const it of instruments) {
-      const bob = knocked
-        ? LAND_BOB *
-          knock *
-          bump((it.x - landing.x) / landing.spread) *
-          Math.sin(TAU * 1.8 * landAge)
-        : 0;
-      const k = it.h * it.level * (1 + bob);
+      const k = it.h * it.level;
       if (k <= 0.01) continue;
       ctx.save();
       // Set a little into the ground, not perched on it.
@@ -2836,7 +2584,6 @@ export const createForestRenderer = (
     /** The squash or stretch the f has, about its foot, for the o to share. */
     squash: { x: number; y: number; sx: number; sy: number },
   ) => {
-    markODrawn = false;
     if (away >= 0.999) return;
     const keep = 1 - away;
     const root = markRoot();
@@ -2876,7 +2623,6 @@ export const createForestRenderer = (
       markO[2 * j] = squash.x + (ox - squash.x) * squash.sx;
       markO[2 * j + 1] = squash.y + (oy - squash.y) * squash.sy;
     }
-    markODrawn = true;
     ctx.beginPath();
     traceSmooth(ctx, markO, MARK_O.n);
     ctx.fill();
@@ -2929,7 +2675,6 @@ export const createForestRenderer = (
     forgetMark();
     introStart = lastTime + DRAW_TOTAL;
     opening = true;
-    pencilStart = -1e9;
   };
 
   return {
